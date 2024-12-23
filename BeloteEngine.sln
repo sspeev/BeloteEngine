@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine", "BeloteEngine\BeloteEngine.csproj", "{66BFA6F8-237C-408C-9D0E-B7EB3325B2B7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Data", "BeloteEngine.Data\BeloteEngine.Data.csproj", "{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{66BFA6F8-237C-408C-9D0E-B7EB3325B2B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66BFA6F8-237C-408C-9D0E-B7EB3325B2B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66BFA6F8-237C-408C-9D0E-B7EB3325B2B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66BFA6F8-237C-408C-9D0E-B7EB3325B2B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {11D80398-0A2F-49D1-94C2-7A0B34F884B9}
+	EndGlobalSection
+EndGlobal
