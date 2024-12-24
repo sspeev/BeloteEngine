@@ -2,6 +2,15 @@
 {
     public class Card
     {
-        public int MyProperty { get; set; }
+        public string Suit { get; set; }
+        public string Rank { get; set; }
+        public int Points { get; set; }
+
+        public Card(string suit, string rank, int points)
+        {
+            Suit = suit;
+            Rank = rank;
+            Points = points;
+        }
     }
 }

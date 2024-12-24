@@ -1,6 +1,4 @@
-﻿using BeloteEngine.Models;
-
-namespace BeloteEngine.Data.Entities.Models
+﻿namespace BeloteEngine.Data.Entities.Models
 {
     public class Team
     {

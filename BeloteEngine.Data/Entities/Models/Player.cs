@@ -1,13 +1,18 @@
-﻿namespace BeloteEngine.Models
+﻿using BeloteEngine.Data.Entities.Enums;
+
+namespace BeloteEngine.Data.Entities.Models
 {
     public class Player
     {
-
-        public HashSet<int> Cards { get; set; }
-
-        public int SetAnnounce(string playerAnnounce)
+        public Player()
         {
-            return 0;
+            Cards = new();
         }
+
+        public Announces AnnounceOffer { get; set; } = 0;
+
+        public Dictionary<string, Dictionary<string, int>> Cards { get; set; }
+
+        //public int Combinations { get; set; }
     }
 }
