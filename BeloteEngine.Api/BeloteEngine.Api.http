@@ -1,0 +1,6 @@
+@BeloteEngine.Api_HostAddress = http://localhost:5043
+
+GET {{BeloteEngine.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
