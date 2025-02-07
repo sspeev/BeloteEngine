@@ -5,10 +5,6 @@ namespace BeloteEngine.Services.Services
 {
     public class GameService : IGameService
     {
-        private bool IsAnnounceSet(Team[] teams)
-        {
-            throw new NotImplementedException();
-        }
 
         public void SetPlayers()
         {
@@ -67,7 +63,6 @@ namespace BeloteEngine.Services.Services
                     }
                 }
             }
-
             var randomizer = new Random();
             const int totalPlayers = 4;
             const int playersPerTeam = 2;
@@ -78,6 +73,15 @@ namespace BeloteEngine.Services.Services
 
             teams[indexOfTeam].players[indexOfPlayer].LastSplitter = true;
             return teams[indexOfTeam].players[indexOfPlayer];
+        }
+
+        public Player PlayerToStartAnnounce(Team[] teams)
+        {
+            var splitter = PlayerToSplitCards(teams);
+            return teams
+                .Where(team => team.players.Contains(splitter))
+                .SelectMany(team => team.players)
+                .First(player => !player.Equals(splitter));
         }
 
         public bool IsGameOver(int team1Score, int team2Score)

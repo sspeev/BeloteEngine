@@ -9,7 +9,5 @@
         public Player[] players { get; set; }
 
         public int Score { get; set; }
-
-
     }
 }
