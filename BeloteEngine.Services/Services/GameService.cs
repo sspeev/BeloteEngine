@@ -42,5 +42,47 @@ namespace BeloteEngine.Services.Services
         {
             throw new NotImplementedException();
         }
+
+        public Player PlayerToSplitCards(Team[] teams)
+        {
+            if (teams == null || teams.Length != 2 || teams.Any(team => team.players == null || team.players.Length != 2))
+            {
+                throw new ArgumentException("Invalid teams array");
+            }
+
+            bool isGameStarted = teams.Any(team => team.Score != 0);
+
+            if (isGameStarted)
+            {
+                for (int i = 0; i < teams.Length; i++)
+                {
+                    for (int j = 0; j < teams[i].players.Length; j++)
+                    {
+                        if (teams[i].players[j].LastSplitter)
+                        {
+                            teams[i].players[j].LastSplitter = false;
+                            teams[(i + 1) % 2].players[j].LastSplitter = true;
+                            return teams[(i + 1) % 2].players[j];
+                        }
+                    }
+                }
+            }
+
+            var randomizer = new Random();
+            const int totalPlayers = 4;
+            const int playersPerTeam = 2;
+
+            int indexOfPlayer = randomizer.Next(0, totalPlayers); // 0 to 3 inclusive
+            int indexOfTeam = indexOfPlayer / playersPerTeam; // 0 or 1
+            indexOfPlayer %= playersPerTeam; // 0 or 1
+
+            teams[indexOfTeam].players[indexOfPlayer].LastSplitter = true;
+            return teams[indexOfTeam].players[indexOfPlayer];
+        }
+
+        public bool IsGameOver(int team1Score, int team2Score)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

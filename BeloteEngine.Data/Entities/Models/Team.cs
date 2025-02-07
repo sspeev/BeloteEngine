@@ -8,7 +8,7 @@
         }
         public Player[] players { get; set; }
 
-        public int Points { get; set; }
+        public int Score { get; set; }
 
 
     }

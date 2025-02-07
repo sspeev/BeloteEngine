@@ -9,6 +9,7 @@ namespace BeloteEngine.Data.Entities.Models
             Cards = new();
         }
 
+        public bool LastSplitter { get; set; } = false;
         public Announces AnnounceOffer { get; set; } = 0;
 
         public Dictionary<string, Dictionary<string, int>> Cards { get; set; }
