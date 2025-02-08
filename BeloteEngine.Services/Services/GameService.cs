@@ -1,4 +1,5 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Data.Entities.Enums;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 
 namespace BeloteEngine.Services.Services
@@ -74,22 +75,22 @@ namespace BeloteEngine.Services.Services
             teams[indexOfTeam].players[indexOfPlayer].LastSplitter = true;
             return teams[indexOfTeam].players[indexOfPlayer];
         }
+        public Player PlayerToDealCards(Team[] teams)
+        {
+            var splitter = PlayerToSplitCards(teams);
+            return GetNextPlayer(teams, splitter);
+        }
 
         public Player PlayerToStartAnnounce(Team[] teams)
         {
-            var splitter = PlayerToSplitCards(teams);
-            return teams
-                .Where(team => team.players.Contains(splitter))
-                .SelectMany(team => team.players)
-                .First(player => !player.Equals(splitter));
+            var dealer = PlayerToDealCards(teams);
+            return GetNextPlayer(teams, dealer);
         }
 
-        public Player PlayerToDealCards(Team[] teams)
+        private static Player GetNextPlayer(Team[] teams, Player currentPlayer)
         {
             var players = AllPlayers(teams);
-            var splitter = PlayerToSplitCards(teams);
-            int playerIndex = Array.IndexOf(players, splitter);
-
+            int playerIndex = Array.IndexOf(players, currentPlayer);
             return players[(playerIndex + 1) % players.Length];
         }
 
