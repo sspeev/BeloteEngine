@@ -84,9 +84,18 @@ namespace BeloteEngine.Services.Services
                 .First(player => !player.Equals(splitter));
         }
 
-        public bool IsGameOver(int team1Score, int team2Score)
+        public Player PlayerToDealCards(Team[] teams)
         {
             throw new NotImplementedException();
+        }
+
+        public bool IsGameOver(int team1Score, int team2Score)
+        {
+            if (team1Score >= 151 || team2Score >= 151)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }
