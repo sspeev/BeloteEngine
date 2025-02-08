@@ -86,7 +86,11 @@ namespace BeloteEngine.Services.Services
 
         public Player PlayerToDealCards(Team[] teams)
         {
-            throw new NotImplementedException();
+            var players = AllPlayers(teams);
+            var splitter = PlayerToSplitCards(teams);
+            int playerIndex = Array.IndexOf(players, splitter);
+
+            return players[(playerIndex + 1) % players.Length];
         }
 
         public bool IsGameOver(int team1Score, int team2Score)
@@ -97,5 +101,12 @@ namespace BeloteEngine.Services.Services
             }
             return false;
         }
+
+        private static Player[] AllPlayers(Team[] teams) => [
+                teams[0].players[0],
+                teams[1].players[0],
+                teams[0].players[1],
+                teams[1].players[1]
+            ];
     }
 }
