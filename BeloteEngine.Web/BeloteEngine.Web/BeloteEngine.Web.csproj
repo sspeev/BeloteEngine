@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BeloteEngine.Web.Client\BeloteEngine.Web.Client.csproj" />
+    <PackageReference Include="DartSassBuilder" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.12" />
   </ItemGroup>
 
