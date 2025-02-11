@@ -1,52 +1,39 @@
 @import "../../wwwroot/variables.scss";
 
-
 nav {
-    background-color: $cool-gray;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-radius: 3em;
+    gap: $medium;
+
     height: 3.5rem;
-    gap: 5rem;
+
+    background-color: rgba($cool-gray, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: $medium;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+
+    padding: 0 $small;
 }
-.white-text {
-    @include poppins-medium;
-    color: $white;
+
+.black-text {
+    color: $black;
+    text-align: center;
 }
 
 .yellow-text {
-    @include poppins-medium;
     color: $aureolin;
+    text-align: center;
 }
 
 .paragraph {
-    margin: 0;
-    padding: 0;
-    font-size: 3em;
+    @include zero-spaces;
+    font-size: $medium;
 }
-a {
-    text-decoration: none !important;
-}
+
 .navLink {
-    color: $white;
-    @include poppins-medium;
-    margin: 0;
-    padding: 0;
-    font-size: 1em;
-    -webkit-text-decoration: none;
-    text-decoration: none;
-
-    a {
-        text-decoration: none !important;
-    }
-
-    &:hover {
-        color: $aureolin;
-    }
-
-    &.active {
-        color: $aureolin;
-    }
+    @include zero-spaces;
+    color: $black;
+    font-size: $small;
 }

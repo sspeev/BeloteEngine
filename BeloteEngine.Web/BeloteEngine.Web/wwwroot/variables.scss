@@ -5,6 +5,13 @@ $aureolin: #f8f32bff; //yellow
 $white: #ffffffff;
 $black: #000000ff;
 
+$full-width: 100%;
+$full-height: 100%;
+
+$small: 1em;
+$medium: 3em;
+$large: 5em;
+
 /* SCSS Gradient */
 $gradient-top: linear-gradient(0deg, #2b2d42ff, #8d99aeff, #f8f32bff, #ffffffff, #000000ff);
 $gradient-right: linear-gradient(90deg, #2b2d42ff, #8d99aeff, #f8f32bff, #ffffffff, #000000ff);
@@ -17,36 +24,27 @@ $gradient-bottom-left: linear-gradient(315deg, #2b2d42ff, #8d99aeff, #f8f32bff, 
 $gradient-radial: radial-gradient(#2b2d42ff, #8d99aeff, #f8f32bff, #ffffffff, #000000ff);
 
 /* Font Variables */
-$poppins-medium: (
-  "font-family": ("Poppins", serif),
-  "font-weight": 900,
-  "font-style": normal
-);
+$poppins-medium: ( "font-family": ("Poppins", serif), "font-weight": 900, "font-style": normal );
 
-$poppins-light: (
-  "font-family": ("Poppins", serif),
-  "font-weight": 300,
-  "font-style": normal
-);
+$poppins-light: ( "font-family": ("Poppins", serif), "font-weight": 300, "font-style": normal );
+
+$zero-spaces: ( "margin": 0, "padding": 0, "box-sizing": border-box );
 
 /* Mixin Definitions */
 @mixin poppins-medium {
-  font-family: map-get($poppins-medium, "font-family");
-  font-weight: map-get($poppins-medium, "font-weight");
-  font-style: map-get($poppins-medium, "font-style");
+    font-family: map-get($poppins-medium, "font-family");
+    font-weight: map-get($poppins-medium, "font-weight");
+    font-style: map-get($poppins-medium, "font-style");
 }
 
 @mixin poppins-light {
-  font-family: map-get($poppins-light, "font-family");
-  font-weight: map-get($poppins-light, "font-weight");
-  font-style: map-get($poppins-light, "font-style");
+    font-family: map-get($poppins-light, "font-family");
+    font-weight: map-get($poppins-light, "font-weight");
+    font-style: map-get($poppins-light, "font-style");
 }
 
-/*p, a {
-    @include poppins-medium;
-    margin: 0;
-    padding: 0;
-    font-size: 3em;
-    -webkit-text-decoration: none;
-    text-decoration: none;
-}*/
+@mixin zero-spaces {
+    margin: map-get($zero-spaces, "margin");
+    padding: map-get($zero-spaces, "padding");
+    box-sizing: map-get($zero-spaces, "box-sizing");
+}
