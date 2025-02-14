@@ -1,5 +1,19 @@
-﻿<h3>Creator</h3>
+﻿@page "/creator"
+
+<article class="board">
+    @for (int i = 0; i < 4; i++)
+    {
+        <button class="card" data-index="@i">
+            <span class="wrapper">
+                <span class="content">
+                    <span class="face back"></span>
+                    <span class="face front"></span>
+                </span>
+            </span>
+        </button>
+    }
+</article>
 
 @code {
-
+    // Your C# code here
 }
