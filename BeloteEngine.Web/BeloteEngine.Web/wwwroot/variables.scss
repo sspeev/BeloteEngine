@@ -12,6 +12,11 @@ $small: 1em;
 $medium: 3em;
 $large: 5em;
 
+/*Animation*/
+$animate-duration: 1s;
+$animate-delay: 1s;
+$animate-repeat: 1;
+
 /* SCSS Gradient */
 $gradient-top: linear-gradient(0deg, #2b2d42ff, #8d99aeff, #f8f32bff, #ffffffff, #000000ff);
 $gradient-right: linear-gradient(90deg, #2b2d42ff, #8d99aeff, #f8f32bff, #ffffffff, #000000ff);

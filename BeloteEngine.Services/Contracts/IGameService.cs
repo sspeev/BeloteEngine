@@ -4,8 +4,11 @@ namespace BeloteEngine.Services.Contracts
 {
     public interface IGameService
     {
-        void SetPlayers();
-        void StartFirstPart();
+        public Game GameInitializer();
+
+        Team[] SetPlayers();
+
+        public void StartFirstPart(Game game);
 
         void StartSecondPart();
 

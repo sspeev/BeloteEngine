@@ -6,25 +6,25 @@ namespace BeloteEngine.Services.Services
 {
     public class GameService : IGameService
     {
-
-        public void SetPlayers()
+        public void StartFirstPart(Game game)
         {
-            Team[] teams = new Team[2];
-            for (int i = 0; i < 2; i++)
+            if (game == null)
             {
-                teams[i].players = new Player[2];
-                //for (int j = 0; j < 2; j++)
-                //{
-                //    teams[i].players[j];
-                //}
+                throw new ArgumentNullException(nameof(game), "Game cannot be null");
             }
-        }
+            if (game.Players == null || game.Players.Length != 2 ||
+                game.Players.Any(team => team.players == null || team.players.Length != 2))
+            {
+                throw new ArgumentException("Invalid teams array in the game");
+            }
+            if (game.Deck == null || game.Deck.Cards == null || game.Deck.Cards.Length == 0)
+            {
+                throw new InvalidOperationException("Deck is not initialized or has no cards");
+            }
 
-        public void StartFirstPart()
-        {
-            //Player 1 цепи
+            game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
             //Player 2 раздава
-            //Player 1 под ръка
+            //Player 3 под ръка
             // обявявания
             //IsAnnounceSet();
             //StartSecondPart();
@@ -35,9 +35,14 @@ namespace BeloteEngine.Services.Services
             throw new NotImplementedException();
         }
 
-        private Dictionary<string, Dictionary<string, int>> CardsRandomizer(Dictionary<string, Dictionary<string, int>> cards)
+        private static Card[] CardsRandomizer(Card[] cards)
         {
-            throw new NotImplementedException();
+            if (cards == null || cards.Length == 0)
+            {
+                throw new ArgumentException("Cards cannot be null or empty");
+            }
+            Random random = new();
+            return [.. cards.OrderBy(x => random.Next())];
         }
 
         public Player PlayerToSplitCards(Team[] teams)
@@ -109,5 +114,29 @@ namespace BeloteEngine.Services.Services
                 teams[0].players[1],
                 teams[1].players[1]
             ];
+
+        public Game GameInitializer()
+        {
+            Game game = new()
+            {
+                Players = SetPlayers()
+            };
+            int teamRandomResult = new Random().Next(0, 2); // 0 or 1
+            int playerRandomResult = new Random().Next(0, 2); // 0 or 1
+
+            game.Players[teamRandomResult].players[playerRandomResult].LastSplitter = true;
+            game.Deck = new Deck();
+
+            return game;
+        }
+
+        public Team[] SetPlayers()
+        {
+            return
+            [
+                    new Team { players = new Player[2], Score = 0 },
+                    new Team { players = new Player[2], Score = 0 }
+            ];
+        }
     }
 }
