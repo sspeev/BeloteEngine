@@ -1,5 +1,6 @@
 using BeloteEngine.Api.Controllers;
 using BeloteEngine.Api.Hub;
+using BeloteEngine.Api.Hubs;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Services;
 

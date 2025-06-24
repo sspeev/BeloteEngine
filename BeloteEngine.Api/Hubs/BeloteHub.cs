@@ -8,11 +8,16 @@ namespace BeloteEngine.Api.Hubs
     {
         private readonly ILogger<BeloteHub> logger;
         private readonly IGameService gameService;
+        private readonly ILobbyService lobbyService;
 
-        public BeloteHub(ILogger<BeloteHub> logger, IGameService gameService)
+        public BeloteHub(
+            ILogger<BeloteHub> _logger, 
+            IGameService _gameService,
+            ILobbyService _lobbyService)
         {
-            this.logger = logger;
-            this.gameService = gameService;
+            logger = _logger;
+            gameService = _gameService;
+            lobbyService = _lobbyService;
         }
 
         public override Task OnConnectedAsync()
