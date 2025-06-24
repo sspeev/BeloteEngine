@@ -1,19 +1,23 @@
 using BeloteEngine.Api.Controllers;
+using BeloteEngine.Api.Hub;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddSignalR();
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<IGameService, GameService>();
+builder.Services.AddSingleton<IGameService, GameService>();
 
 var app = builder.Build();
+
+app.Logger.LogInformation("Starting BeloteEngine API...");
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -27,5 +31,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<BeloteHub>("/beloteHub");
 
 await app.RunAsync();

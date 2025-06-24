@@ -8,6 +8,11 @@ namespace BeloteEngine.Data.Entities.Models
         {
             Cards = new();
         }
+        public int ConnectionId { get; set; }
+
+        public string Name { get; set; }
+
+        public bool IsConnected { get; set; }
 
         public bool LastSplitter { get; set; } = false;
         public Announces AnnounceOffer { get; set; } = 0;

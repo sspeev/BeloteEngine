@@ -10,8 +10,6 @@ namespace BeloteEngine.Data.Entities.Models
             Deck = new Deck();
         }
 
-        public Announces CurrentAnnounce { get; set; } = 0;
-
         public Team[] Players { get; set; }
 
         public Deck Deck { get; set; }
@@ -63,5 +61,11 @@ namespace BeloteEngine.Data.Entities.Models
                 }
             }
         }
+
+        public int SessionId { get; set; }
+
+        public Announces CurrentAnnounce { get; set; } = 0;
+
+        public Player CurrentPlayer { get; set; }
     }
 }
