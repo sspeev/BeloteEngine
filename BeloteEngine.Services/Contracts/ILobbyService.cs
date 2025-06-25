@@ -8,7 +8,7 @@ namespace BeloteEngine.Services.Contracts
         public Task<bool> LeaveLobby(Player player);
         //Task<LobbyInfo> GetLobbyInfo();
         //Task<bool> StartGame();
-        public Task HandlePlayerDisconnection(Player player);
+        //public Task HandlePlayerDisconnection(Player player);
         public Task NotifyLobbyUpdate();
         public void ResetLobby();
     }

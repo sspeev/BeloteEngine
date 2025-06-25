@@ -4,13 +4,10 @@ namespace BeloteEngine.Data.Entities.Models
 {
     public class Player
     {
-        public Player()
-        {
-            Cards = new();
-        }
+        public Player() => Cards = new();
         public int ConnectionId { get; set; }
 
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         public bool IsConnected { get; set; }
 

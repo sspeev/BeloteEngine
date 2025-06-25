@@ -4,21 +4,14 @@ using System.Threading.Tasks;
 
 namespace BeloteEngine.Api.Hubs
 {
-    public class BeloteHub : Hub
+    public class BeloteHub(
+        ILogger<BeloteHub> _logger,
+        IGameService _gameService,
+        ILobbyService _lobbyService) : Hub
     {
-        private readonly ILogger<BeloteHub> logger;
-        private readonly IGameService gameService;
-        private readonly ILobbyService lobbyService;
-
-        public BeloteHub(
-            ILogger<BeloteHub> _logger, 
-            IGameService _gameService,
-            ILobbyService _lobbyService)
-        {
-            logger = _logger;
-            gameService = _gameService;
-            lobbyService = _lobbyService;
-        }
+        private readonly ILogger<BeloteHub> logger = _logger;
+        private readonly IGameService gameService = _gameService;
+        private readonly ILobbyService lobbyService = _lobbyService;
 
         public override Task OnConnectedAsync()
         {

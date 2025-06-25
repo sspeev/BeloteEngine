@@ -1,17 +1,18 @@
 ﻿using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using Microsoft.Extensions.Logging;
 
 namespace BeloteEngine.Services.Services
 {
-    public class LobbyService(ILobby _lobby, IGameService _gameService) : ILobbyService
+    public class LobbyService(
+        ILobby _lobby, 
+        IGameService _gameService, 
+        ILogger<LobbyService> _logger)
+        : ILobbyService
     {
         private readonly ILobby lobby = _lobby;
         private readonly IGameService gameService = _gameService;
-
-        public Task HandlePlayerDisconnection(Player player)
-        {
-            throw new NotImplementedException();
-        }
+        private readonly ILogger<LobbyService> logger = _logger;
 
         public Task<JoinResult> JoinLobby(Player player)
         {
@@ -61,7 +62,14 @@ namespace BeloteEngine.Services.Services
 
         public Task NotifyLobbyUpdate()
         {
+            logger.LogInformation("Lobby updated. Current player count: {PlayerCount}, Game started: {GameStarted}",
+                lobby.ConnectedPlayers.Count,
+                lobby.GameStarted);
 
+            // Add your notification logic here
+            // For example, return a Task that will be used by SignalR to notify clients
+
+            return Task.CompletedTask;
         }
 
         public void ResetLobby()
