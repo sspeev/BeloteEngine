@@ -1,5 +1,3 @@
-using BeloteEngine.Api.Controllers;
-using BeloteEngine.Api.Hub;
 using BeloteEngine.Api.Hubs;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Services;
@@ -13,6 +11,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<ILobby, Lobby>();
+builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 
 var app = builder.Build();
