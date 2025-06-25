@@ -1,4 +1,5 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Data.Entities.Enums;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 
 namespace BeloteEngine.Services.Services
@@ -74,19 +75,39 @@ namespace BeloteEngine.Services.Services
             teams[indexOfTeam].players[indexOfPlayer].LastSplitter = true;
             return teams[indexOfTeam].players[indexOfPlayer];
         }
+        public Player PlayerToDealCards(Team[] teams)
+        {
+            var splitter = PlayerToSplitCards(teams);
+            return GetNextPlayer(teams, splitter);
+        }
 
         public Player PlayerToStartAnnounce(Team[] teams)
         {
-            var splitter = PlayerToSplitCards(teams);
-            return teams
-                .Where(team => team.players.Contains(splitter))
-                .SelectMany(team => team.players)
-                .First(player => !player.Equals(splitter));
+            var dealer = PlayerToDealCards(teams);
+            return GetNextPlayer(teams, dealer);
+        }
+
+        private static Player GetNextPlayer(Team[] teams, Player currentPlayer)
+        {
+            var players = AllPlayers(teams);
+            int playerIndex = Array.IndexOf(players, currentPlayer);
+            return players[(playerIndex + 1) % players.Length];
         }
 
         public bool IsGameOver(int team1Score, int team2Score)
         {
-            throw new NotImplementedException();
+            if (team1Score >= 151 || team2Score >= 151)
+            {
+                return true;
+            }
+            return false;
         }
+
+        private static Player[] AllPlayers(Team[] teams) => [
+                teams[0].players[0],
+                teams[1].players[0],
+                teams[0].players[1],
+                teams[1].players[1]
+            ];
     }
 }

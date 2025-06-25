@@ -5,8 +5,6 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Data", "BeloteEngine.Data\BeloteEngine.Data.csproj", "{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Web", "BeloteEngine.Web\BeloteEngine.Web.csproj", "{4EC78215-680A-4424-91C9-A1ED4561C9F6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Api", "BeloteEngine.Api\BeloteEngine.Api.csproj", "{BA9767BF-B1C8-45A9-A35F-30DF893DC355}"
 	ProjectSection(ProjectDependencies) = postProject
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF} = {9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}
@@ -27,10 +25,6 @@ Global
 		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4EC78215-680A-4424-91C9-A1ED4561C9F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4EC78215-680A-4424-91C9-A1ED4561C9F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4EC78215-680A-4424-91C9-A1ED4561C9F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4EC78215-680A-4424-91C9-A1ED4561C9F6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BA9767BF-B1C8-45A9-A35F-30DF893DC355}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BA9767BF-B1C8-45A9-A35F-30DF893DC355}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA9767BF-B1C8-45A9-A35F-30DF893DC355}.Release|Any CPU.ActiveCfg = Release|Any CPU
