@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging;
 namespace BeloteEngine.Services.Services
 {
     public class LobbyService(
-        ILobby _lobby, 
-        IGameService _gameService, 
-        ILogger<LobbyService> _logger)
+        ILobby _lobby
+        ,IGameService _gameService 
+        ,ILogger<LobbyService> _logger)
         : ILobbyService
     {
         private readonly ILobby lobby = _lobby;

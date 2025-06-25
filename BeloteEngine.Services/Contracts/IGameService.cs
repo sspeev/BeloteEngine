@@ -1,4 +1,5 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Data.Entities.Enums;
+using BeloteEngine.Data.Entities.Models;
 
 namespace BeloteEngine.Services.Contracts
 {
@@ -6,11 +7,9 @@ namespace BeloteEngine.Services.Contracts
     {
         public Game GameInitializer();
 
-        Team[] SetPlayers();
+        public Game InitialPhase(Game game);
 
-        public void StartFirstPart(Game game);
-
-        void StartSecondPart();
+        public Game Gameplay(Game game);
 
         public Player PlayerToSplitCards(Team[] teams);
 
@@ -18,10 +17,16 @@ namespace BeloteEngine.Services.Contracts
 
         public Player PlayerToStartAnnounce(Team[] teams);
 
-        //public Player NextPlayerToAnnounce(Player player);
+        public void SetPlayerAnnounce(Player player, Announces announce);
+
+        public Player NextPlayerToAnnounce(Player player);
 
         bool IsGameOver(int team1Score, int team2Score);
 
         //public Team Winner(Team[] teams);
+
+        public Game NextGame(Game game);
+
+        public Game GameReset(Game game);
     }
 }

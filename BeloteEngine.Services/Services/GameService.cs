@@ -1,11 +1,22 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Data.Entities.Enums;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using Microsoft.Extensions.Logging;
+using static BeloteEngine.Data.Entities.Enums.Announces;
 
 namespace BeloteEngine.Services.Services
 {
-    public class GameService : IGameService
+    public class GameService(
+        ILobby _lobby
+        //,ILobbyService _lobbyService
+        , ILogger<GameService> _logger)
+        : IGameService
     {
-        public void StartFirstPart(Game game)
+        private readonly ILobby lobby = _lobby;
+        //private readonly ILobbyService lobbyService = _lobbyService;
+        private readonly ILogger<GameService> logger = _logger;
+
+        public Game InitialPhase(Game game)
         {
             if (game == null)
             {
@@ -22,27 +33,22 @@ namespace BeloteEngine.Services.Services
             }
 
             game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
-            //Player 2 раздава
-            //Player 3 под ръка
+            game.CurrentPlayer = PlayerToSplitCards(game.Players);
+            logger.LogInformation("Current player to split cards: {PlayerName}", game.CurrentPlayer.Name);
+
+            return game;
+
             // обявявания
             //IsAnnounceSet();
             //StartSecondPart();
         }
 
-        public void StartSecondPart()
+        public Game Gameplay(Game game)
         {
             throw new NotImplementedException();
         }
 
-        private static Card[] CardsRandomizer(Card[] cards)
-        {
-            if (cards == null || cards.Length == 0)
-            {
-                throw new ArgumentException("Cards cannot be null or empty");
-            }
-            Random random = new();
-            return [.. cards.OrderBy(x => random.Next())];
-        }
+
 
         public Player PlayerToSplitCards(Team[] teams)
         {
@@ -51,51 +57,45 @@ namespace BeloteEngine.Services.Services
                 throw new ArgumentException("Invalid teams array");
             }
 
-            bool isGameStarted = teams.Any(team => team.Score != 0);
-
-            if (isGameStarted)
+            for (int i = 0; i < teams.Length; i++)
             {
-                for (int i = 0; i < teams.Length; i++)
+                for (int j = 0; j < teams[i].players.Length; j++)
                 {
-                    for (int j = 0; j < teams[i].players.Length; j++)
+                    if (teams[i].players[j].LastSplitter)
                     {
-                        if (teams[i].players[j].LastSplitter)
-                        {
-                            teams[i].players[j].LastSplitter = false;
-                            teams[(i + 1) % 2].players[j].LastSplitter = true;
-                            return teams[(i + 1) % 2].players[j];
-                        }
+                        teams[i].players[j].LastSplitter = false;
+                        teams[(i + 1) % 2].players[j].LastSplitter = true;
+                        return teams[(i + 1) % 2].players[j];
                     }
                 }
             }
-            var randomizer = new Random();
-            const int totalPlayers = 4;
-            const int playersPerTeam = 2;
-
-            int indexOfPlayer = randomizer.Next(0, totalPlayers); // 0 to 3 inclusive
-            int indexOfTeam = indexOfPlayer / playersPerTeam; // 0 or 1
-            indexOfPlayer %= playersPerTeam; // 0 or 1
-
-            teams[indexOfTeam].players[indexOfPlayer].LastSplitter = true;
-            return teams[indexOfTeam].players[indexOfPlayer];
+            throw new InvalidOperationException("No player found who has split cards last.");
         }
         public Player PlayerToDealCards(Team[] teams)
         {
-            var splitter = PlayerToSplitCards(teams);
-            return GetNextPlayer(teams, splitter);
+            var splitter = lobby.Game.CurrentPlayer;
+            var dealer = GetNextPlayer(teams, splitter);
+            logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
+            return dealer;
         }
 
         public Player PlayerToStartAnnounce(Team[] teams)
         {
-            var dealer = PlayerToDealCards(teams);
-            return GetNextPlayer(teams, dealer);
+            var dealer = lobby.Game.CurrentPlayer;
+            var announcer = GetNextPlayer(teams, dealer);
+            announcer.IsStarter = true;
+            logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
+            return announcer;
         }
 
-        private static Player GetNextPlayer(Team[] teams, Player currentPlayer)
+        private Player GetNextPlayer(Team[] teams, Player currentPlayer)
         {
             var players = AllPlayers(teams);
             int playerIndex = Array.IndexOf(players, currentPlayer);
-            return players[(playerIndex + 1) % players.Length];
+            var nextPlayer = players[(playerIndex + 1) % players.Length];
+            lobby.Game.CurrentPlayer = nextPlayer;
+            logger.LogInformation("Next player to make an action: {PlayerName}", nextPlayer.Name);
+            return nextPlayer;
         }
 
         public bool IsGameOver(int team1Score, int team2Score)
@@ -125,17 +125,107 @@ namespace BeloteEngine.Services.Services
 
             game.Players[teamRandomResult].players[playerRandomResult].LastSplitter = true;
             game.Deck = new Deck();
+            lobby.GameStarted = true;
 
+            logger.LogInformation("Game initialized with players: {Players}",
+                string.Join(", ", game.Players.SelectMany(team => team.players.Select(player => player.Name))));
             return game;
         }
 
-        public Team[] SetPlayers()
+        private Team[] SetPlayers()
         {
-            return
-            [
-                    new Team { players = new Player[2], Score = 0 },
-                    new Team { players = new Player[2], Score = 0 }
-            ];
+            Team team1 = new()
+            {
+                players =
+                [
+                    lobby.ConnectedPlayers[0],
+                    lobby.ConnectedPlayers[2]
+                ],
+                Score = 0
+            };
+
+            Team team2 = new()
+            {
+                players =
+                [
+                    lobby.ConnectedPlayers[1],
+                    lobby.ConnectedPlayers[3]
+                ],
+                Score = 0
+            };
+
+            return [team1, team2];
+        }
+
+        private static Card[] CardsRandomizer(Card[] cards)
+        {
+            if (cards == null || cards.Length == 0)
+            {
+                throw new ArgumentException("Cards cannot be null or empty");
+            }
+            Random random = new();
+            return [.. cards.OrderBy(x => random.Next())];
+        }
+
+        public void SetPlayerAnnounce(Player currPlayer, Announces announce)
+        {
+            currPlayer.AnnounceOffer = announce;
+        }
+
+        public Player NextPlayerToAnnounce(Player currPlayer)
+        {
+            if (currPlayer.AnnounceOffer == None)
+            {
+                throw new ArgumentNullException("Current player has not announced yet!");
+            }
+            if(currPlayer.AnnounceOffer != Пас)
+            {
+                if(lobby.Game.CurrentAnnounce < currPlayer.AnnounceOffer)
+                {
+                    logger.LogInformation("Current announce updated to: {Announce}", currPlayer.AnnounceOffer);
+                    lobby.Game.CurrentAnnounce = currPlayer.AnnounceOffer;
+
+                    return GetNextPlayer(lobby.Game.Players, currPlayer);
+                }
+                else throw new InvalidOperationException("Current announce cannot be lower than the previous one!");
+            }
+            else lobby.Game.PassCounter++;
+
+            throw new Exception("No next player to announce found or game is in an invalid state.");
+        }
+
+        //private Game EndStateOfInitialPhase()
+        //{
+        //    if (lobby.Game.PassCounter == 4)
+        //    {
+        //        return GameReset(lobby.Game);
+        //    }
+        //    else if (lobby.Game.PassCounter == 3 && lobby.Game.CurrentAnnounce != None)
+        //    {
+        //        Gameplay(lobby.Game);
+        //    }
+        //    else
+        //    {
+
+        //    }
+        //}
+
+        public Game GameReset(Game game)
+        {
+            game.CurrentAnnounce = None;
+            game.PassCounter = 0;
+
+            return InitialPhase(game);
+        }
+
+        public Game NextGame(Game game)
+        {
+            //Calculate points
+
+            game.CurrentAnnounce = None;
+            game.PassCounter = 0;
+
+            return InitialPhase(game);
         }
     }
 }

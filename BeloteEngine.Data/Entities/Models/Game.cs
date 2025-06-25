@@ -62,10 +62,11 @@ namespace BeloteEngine.Data.Entities.Models
             }
         }
 
-        public int SessionId { get; set; }
 
-        public Announces CurrentAnnounce { get; set; } = 0;
+        public Announces CurrentAnnounce { get; set; } = Announces.None;
 
         public Player CurrentPlayer { get; set; }
+
+        public int PassCounter { get; set; } = 0;
     }
 }

@@ -1,34 +1,34 @@
-﻿using BeloteEngine.Services.Contracts;
+﻿using BeloteEngine.Data.Entities.Models;
+using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.SignalR;
-using System.Threading.Tasks;
 
 namespace BeloteEngine.Api.Hubs
 {
     public class BeloteHub(
         ILogger<BeloteHub> _logger,
         IGameService _gameService,
-        ILobbyService _lobbyService) : Hub
+        ILobbyService _lobbyService,
+        ILobby _lobby) : Hub
     {
         private readonly ILogger<BeloteHub> logger = _logger;
         private readonly IGameService gameService = _gameService;
         private readonly ILobbyService lobbyService = _lobbyService;
+        private readonly ILobby lobby = _lobby;
 
         public override Task OnConnectedAsync()
         {
-            logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
+            logger.LogInformation("Player connected: {ConnectionId}", Context.ConnectionId);
             return base.OnConnectedAsync();
         }
 
         public void StartGame()
         {
-            logger.LogInformation("Game started.");
-            gameService.GameInitializer();
+            lobby.Game =  gameService.GameInitializer();
         }
 
-        public Task JoinGame(string gameId, string playerId)
+        public Task JoinGame(Player player)
         {
-            logger.LogInformation("Player {PlayerId} joined game {GameId}.", playerId, gameId);
-            return gameService.JoinGame(gameId, playerId);
+            return lobbyService.JoinLobby(player);
         }
 
         public Task SendMove(string gameId, object moveData)
