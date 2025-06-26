@@ -31,10 +31,10 @@ namespace BeloteEngine.Api.Hubs
             return lobbyService.JoinLobby(player);
         }
 
-        public Task SendMove(string gameId, object moveData)
-        {
-            logger.LogInformation("Move sent for game {GameId}.", gameId);
-            return gameService.ProcessMove(gameId, moveData);
-        }
+        //public Task SendMove(string gameId, object moveData)
+        //{
+        //    logger.LogInformation("Move sent for game {GameId}.", gameId);
+        //    return gameService.ProcessMove(gameId, moveData);
+        //}
     }
 }
