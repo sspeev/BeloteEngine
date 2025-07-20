@@ -15,10 +15,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Services", "Be
 		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020} = {24CF43A6-9F78-40CA-BE27-DB0EC00D7020}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Web", "BeloteEngine.Web\BeloteEngine.Web\BeloteEngine.Web.csproj", "{F99D8AF9-C9FB-4ECB-93BF-E85ADFFC7035}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Web.Client", "BeloteEngine.Web\BeloteEngine.Web.Client\BeloteEngine.Web.Client.csproj", "{602950BC-A28B-48FE-936D-09B46227B678}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,14 +33,6 @@ Global
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F99D8AF9-C9FB-4ECB-93BF-E85ADFFC7035}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F99D8AF9-C9FB-4ECB-93BF-E85ADFFC7035}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F99D8AF9-C9FB-4ECB-93BF-E85ADFFC7035}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F99D8AF9-C9FB-4ECB-93BF-E85ADFFC7035}.Release|Any CPU.Build.0 = Release|Any CPU
-		{602950BC-A28B-48FE-936D-09B46227B678}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{602950BC-A28B-48FE-936D-09B46227B678}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{602950BC-A28B-48FE-936D-09B46227B678}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{602950BC-A28B-48FE-936D-09B46227B678}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

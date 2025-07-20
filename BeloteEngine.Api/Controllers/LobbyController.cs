@@ -8,18 +8,16 @@ namespace BeloteEngine.Api.Controllers
     [ApiController]
     public class LobbyController(
         //ILogger<GameController> _logger
-        BeloteHub _hub
-        ,IHubContext<BeloteHub> _hubContext) : ControllerBase
+        IHubContext<BeloteHub> _hubContext) : ControllerBase
     {
         //private readonly ILogger<GameController> logger = _logger;
-        private readonly BeloteHub hub = _hub;
         private readonly IHubContext<BeloteHub> hubContext = _hubContext;
 
         [HttpGet]
         public async Task<IActionResult> Join()
         {
-            await hubContext.Clients.All.SendAsync("ReceiveMessage", "Welcome to the Belote Lobby!");
-            return Ok("Game logic will be implemented here.");
+            //await hubContext.Clients.All.SendAsync("ReceiveMessage", "Welcome to the Belote Lobby!");
+            return Ok(new List<int>() { 1, 2, 3});
         }
     }
 }

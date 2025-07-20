@@ -11,6 +11,17 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddControllers();
 
+builder.Services.AddCors(opt =>
+{
+    opt.AddPolicy("BlazorWasmPolicy", policy =>
+    {
+        policy.WithOrigins("https://localhost:7240", "http://localhost:5144") // Blazor Web ports
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Important for SignalR
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -30,6 +41,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("BlazorWasmPolicy");
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();

@@ -11,6 +11,7 @@
     <PackageReference Include="animate.css" Version="3.3.0" />
     <PackageReference Include="DartSassBuilder" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.17" />
   </ItemGroup>
 

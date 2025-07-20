@@ -1,4 +1,3 @@
-using BeloteEngine.Web.Client.Pages;
 using BeloteEngine.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+
+// Add this line to your builder configuration
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new("https://localhost:7132") });
 
 var app = builder.Build();
 
