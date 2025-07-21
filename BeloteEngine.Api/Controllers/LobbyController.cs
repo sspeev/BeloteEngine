@@ -16,7 +16,7 @@ namespace BeloteEngine.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> Join()
         {
-            //await hubContext.Clients.All.SendAsync("ReceiveMessage", "Welcome to the Belote Lobby!");
+            await hubContext.Clients.All.SendAsync("ReceiveMessage", "Welcome to the Belote Lobby!");
             return Ok(new List<int>() { 1, 2, 3});
         }
     }
