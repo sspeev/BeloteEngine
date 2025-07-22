@@ -11,6 +11,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy => policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
+});
+
 builder.Services.AddSingleton<ILobby, Lobby>();
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
@@ -28,6 +38,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseCors("AllowFrontend");
 app.UseRouting();
 app.UseAuthorization();
 

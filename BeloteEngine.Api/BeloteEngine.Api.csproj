@@ -9,8 +9,9 @@
 
     <!-- SPA Properties -->
     <SpaRoot>..\BeloteEngineFE</SpaRoot>
-    <SpaProxyServerUrl>http://localhost:5173</SpaProxyServerUrl>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
+    <SpaProxyServerUrl>http://localhost:5173</SpaProxyServerUrl>
+    <SpaProxyLaunchEnabled>true</SpaProxyLaunchEnabled>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +24,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BeloteEngine.Services\BeloteEngine.Services.csproj" />
-    <ProjectReference Include="..\..\BeloteEngineFE\beloteenginefe.esproj" />
+    <ProjectReference Include="..\..\BeloteEngineFE\beloteenginefe.esproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

@@ -14,6 +14,17 @@ namespace BeloteEngine.Services.Services
         private readonly IGameService gameService = _gameService;
         private readonly ILogger<LobbyService> logger = _logger;
 
+        public ILobby CreateLobby()
+        {
+            lock (lobby.LobbyLock)
+            {
+                lobby.Reset();
+                lobby.Game = gameService.GameInitializer();
+                logger.LogInformation("New lobby created at {CreatedAt}", DateTime.UtcNow);
+                return lobby;
+            }
+        }
+
         public Task<JoinResult> JoinLobby(Player player)
         {
             lock (lobby.LobbyLock)
