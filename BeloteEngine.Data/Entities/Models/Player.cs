@@ -5,7 +5,7 @@ namespace BeloteEngine.Data.Entities.Models
     public class Player
     {
         public Player() => Cards = new();
-        public int ConnectionId { get; set; }
+        public int? ConnectionId { get; set; }
 
         public required string Name { get; set; }
 

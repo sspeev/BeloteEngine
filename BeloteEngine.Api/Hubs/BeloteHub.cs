@@ -5,15 +5,14 @@ using Microsoft.AspNetCore.SignalR;
 namespace BeloteEngine.Api.Hubs
 {
     public class BeloteHub(
-        ILogger<BeloteHub> _logger,
-        IGameService _gameService,
-        ILobbyService _lobbyService,
-        ILobby _lobby) : Hub
+        ILogger<BeloteHub> _logger
+        //, IGameService _gameService
+        //, ILobbyService _lobbyService
+        ) : Hub
     {
         private readonly ILogger<BeloteHub> logger = _logger;
-        private readonly IGameService gameService = _gameService;
-        private readonly ILobbyService lobbyService = _lobbyService;
-        private readonly ILobby lobby = _lobby;
+        //private readonly IGameService gameService = _gameService;
+        //private readonly ILobbyService lobbyService = _lobbyService;
 
         public override Task OnConnectedAsync()
         {
@@ -21,15 +20,15 @@ namespace BeloteEngine.Api.Hubs
             return base.OnConnectedAsync();
         }
 
-        public void StartGame()
-        {
-            lobby.Game =  gameService.GameInitializer();
-        }
+        //public void StartGame()
+        //{
+        //    lobby.Game =  gameService.GameInitializer();
+        //}
 
-        public Task JoinGame(Player player)
-        {
-            return lobbyService.JoinLobby(player);
-        }
+        //public Task JoinGame(Player player)
+        //{
+        //    return lobbyService.JoinLobby(player);
+        //}
 
         //public Task SendMove(string gameId, object moveData)
         //{

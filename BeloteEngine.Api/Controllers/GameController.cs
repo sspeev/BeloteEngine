@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeloteEngine.Api.Controllers
 {
-    [Route("api/lobby")]
+    [Route("api/game")]
     [ApiController]
     public class GameController(
         //ILogger<GameController> _logger

@@ -9,30 +9,30 @@ namespace BeloteEngine.Services.Contracts
         /// Initializes a new instance of the <see cref="Game"/> class.
         /// </summary>
         /// <returns>A <see cref="Game"/> object representing the initialized game state.</returns>
-        public Game GameInitializer();
+        public Game GameInitializer(Lobby lobby);
 
         public Game Creator();
 
-        public Game InitialPhase(Game game);
+        public Game InitialPhase(Lobby lobby);
 
-        public Game Gameplay(Game game);
+        public Game Gameplay(Lobby lobby);
 
-        public Player PlayerToSplitCards(Team[] teams);
+        public Player PlayerToSplitCards(Lobby lobby);
 
-        public Player PlayerToDealCards(Team[] teams);
+        public Player PlayerToDealCards(Lobby lobby);
 
-        public Player PlayerToStartAnnounce(Team[] teams);
+        public Player PlayerToStartAnnounce(Lobby lobby);
 
         public void SetPlayerAnnounce(Player player, Announces announce);
 
-        public Player NextPlayerToAnnounce(Player player);
+        public Player NextPlayerToAnnounce(Lobby lobby, Player currPlayer);
 
         bool IsGameOver(int team1Score, int team2Score);
 
         //public Team Winner(Team[] teams);
 
-        public Game NextGame(Game game);
+        public Game NextGame(Lobby lobby);
 
-        public Game GameReset(Game game);
+        public Game GameReset(Lobby lobby);
     }
 }

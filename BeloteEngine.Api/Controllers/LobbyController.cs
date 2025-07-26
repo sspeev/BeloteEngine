@@ -13,56 +13,65 @@ namespace BeloteEngine.Api.Controllers
         IHubContext<BeloteHub> _hubContext
         , ILobbyService _lobbyService
         , IGameService _gameService
-        , ILobby _lobby) : ControllerBase
+        ) : ControllerBase
     {
         //private readonly ILogger<GameController> logger = _logger;
         private readonly IHubContext<BeloteHub> hubContext = _hubContext;
         private readonly ILobbyService lobbyService = _lobbyService;
         private readonly IGameService gameService = _gameService;
-        private readonly ILobby lobby = _lobby;
+
+        [HttpPost("create")]
+        public IActionResult CreateLobby([FromBody] RequestInfo request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return BadRequest("Player name cannot be empty.");
+            }
+            var lobby = lobbyService.CreateLobby();
+            var player = new Player { Name = request.Name, ConnectionId = lobby.Id, IsConnected = true };
+            var joinResult = lobbyService.JoinLobby(player);
+            if (!joinResult.Success)
+            {
+                return BadRequest(joinResult.ErrorMessage);
+            }
+
+            return Ok(new
+            {
+                LobbyId = lobby.Id,
+                PlayerCount = lobby.ConnectedPlayers.Count
+            });
+        }
 
         [HttpPost("join")]
-        public async Task<IActionResult> Join([FromBody] PlayerNameRequest request)
+        public async Task<IActionResult> Join([FromBody] RequestInfo request)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
             {
                 return BadRequest("Player name cannot be empty.");
             }
 
-            var player = new Player { Name = request.Name, ConnectionId = 1, IsConnected = true };
-            var joinResult = await lobbyService.JoinLobby(player);
+            var player = new Player { Name = request.Name, ConnectionId = request.LobbyId, IsConnected = true };
+            var joinResult = lobbyService.JoinLobby(player);
             await hubContext.Clients.All.SendAsync("ReceiveMessage", "Welcome to the Belote Lobby!");
-            return Ok();
+
+            if(lobbyService.GetLobby(request.LobbyId).ConnectedPlayers.Count == 4)
+            {
+                gameService.GameInitializer(lobbyService.GetLobby(request.LobbyId));
+            }
+            return Ok(new
+            {
+                joinResult.Success,
+                joinResult.ErrorMessage,
+                request.LobbyId,
+                PlayerCount = lobbyService.GetLobby(request.LobbyId)?.ConnectedPlayers.Count ?? 0
+            });
         }
 
-        //[HttpPost("create")]
-        //public IActionResult CreateLobby([FromBody] PlayerNameRequest request)
-        //{
-        //    if (string.IsNullOrWhiteSpace(request.Name))
-        //    {
-        //        return BadRequest("Player name cannot be empty.");
-        //    }
-            
-        //    // 1. First reset/prepare the lobby
-        //    lobby.Reset();
-            
-        //    // 2. Create and add the player
-        //    var player = new Player { Name = request.Name, ConnectionId = 1, IsConnected = true };
-        //    var joinResult = lobbyService.JoinLobby(player).Result;
-        //    if (!joinResult.Success)
-        //    {
-        //        return BadRequest(joinResult.ErrorMessage);
-        //    }
-            
-        //    // 3. Return lobby info (without initializing game yet)
-        //    return Ok(new { LobbyId = lobby.CreatedAt.Ticks, PlayerCount = lobby.ConnectedPlayers.Count });
-            
-        //    // Game initialization should happen later, when all players have joined
-        //}
-
-        public class PlayerNameRequest
+        public class RequestInfo
         {
             public string Name { get; set; } = string.Empty;
+
+            public int LobbyId { get; set; }
         }
     }
 }

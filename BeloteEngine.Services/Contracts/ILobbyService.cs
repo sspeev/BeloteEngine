@@ -4,13 +4,14 @@ namespace BeloteEngine.Services.Contracts
 {
     public interface ILobbyService
     {
-        //public ILobby CreateLobby();
-        public Task<JoinResult> JoinLobby(Player player);
-        public Task<bool> LeaveLobby(Player player);
-        //Task<LobbyInfo> GetLobbyInfo();
+        public Lobby CreateLobby();
+        public JoinResult JoinLobby(Player player);
+        public bool LeaveLobby(Player player, int lobbyId);
+        public Lobby GetLobby(int lobbyId);
         //Task<bool> StartGame();
         //public Task HandlePlayerDisconnection(Player player);
-        public Task NotifyLobbyUpdate();
-        public void ResetLobby();
+        public Task NotifyLobbyUpdate(int lobbyId);
+        public bool IsFull(int lobbyId);
+        public void ResetLobby(int lobbyId);
     }
 }

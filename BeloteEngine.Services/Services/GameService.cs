@@ -7,17 +7,24 @@ using static BeloteEngine.Data.Entities.Enums.Announces;
 namespace BeloteEngine.Services.Services
 {
     public class GameService(
-        ILobby _lobby
-        //,ILobbyService _lobbyService
-        , ILogger<GameService> _logger)
+        //ILobbyService _lobbyService
+         ILogger<GameService> _logger)
         : IGameService
     {
-        private readonly ILobby lobby = _lobby;
         //private readonly ILobbyService lobbyService = _lobbyService;
         private readonly ILogger<GameService> logger = _logger;
 
-        public Game InitialPhase(Game game)
+        public Game InitialPhase(Lobby lobby)
         {
+            if (lobby == null)
+            {
+                throw new ArgumentNullException(nameof(lobby), "Lobby cannot be null");
+            }
+            if (lobby.Game == null)
+            {
+                throw new InvalidOperationException("Game is not initialized in the lobby");
+            }
+            var game = lobby.Game;
             if (game == null)
             {
                 throw new ArgumentNullException(nameof(game), "Game cannot be null");
@@ -33,7 +40,7 @@ namespace BeloteEngine.Services.Services
             }
 
             game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
-            game.CurrentPlayer = PlayerToSplitCards(game.Players);
+            game.CurrentPlayer = PlayerToSplitCards(lobby);
             logger.LogInformation("Current player to split cards: {PlayerName}", game.CurrentPlayer.Name);
 
             return game;
@@ -43,15 +50,14 @@ namespace BeloteEngine.Services.Services
             //StartSecondPart();
         }
 
-        public Game Gameplay(Game game)
+        public Game Gameplay(Lobby lobby)
         {
             throw new NotImplementedException();
         }
 
-
-
-        public Player PlayerToSplitCards(Team[] teams)
+        public Player PlayerToSplitCards(Lobby lobby)
         {
+            var teams = lobby.Game.Players;
             if (teams == null || teams.Length != 2 || teams.Any(team => team.players == null || team.players.Length != 2))
             {
                 throw new ArgumentException("Invalid teams array");
@@ -71,26 +77,26 @@ namespace BeloteEngine.Services.Services
             }
             throw new InvalidOperationException("No player found who has split cards last.");
         }
-        public Player PlayerToDealCards(Team[] teams)
+        public Player PlayerToDealCards(Lobby lobby)
         {
             var splitter = lobby.Game.CurrentPlayer;
-            var dealer = GetNextPlayer(teams, splitter);
+            var dealer = GetNextPlayer(lobby, splitter);
             logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
             return dealer;
         }
 
-        public Player PlayerToStartAnnounce(Team[] teams)
+        public Player PlayerToStartAnnounce(Lobby lobby)
         {
             var dealer = lobby.Game.CurrentPlayer;
-            var announcer = GetNextPlayer(teams, dealer);
+            var announcer = GetNextPlayer(lobby, dealer);
             announcer.IsStarter = true;
             logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
             return announcer;
         }
 
-        private Player GetNextPlayer(Team[] teams, Player currentPlayer)
+        private Player GetNextPlayer(Lobby lobby, Player currentPlayer)
         {
-            var players = AllPlayers(teams);
+            var players = AllPlayers(lobby.Game.Players);
             int playerIndex = Array.IndexOf(players, currentPlayer);
             var nextPlayer = players[(playerIndex + 1) % players.Length];
             lobby.Game.CurrentPlayer = nextPlayer;
@@ -114,17 +120,18 @@ namespace BeloteEngine.Services.Services
                 teams[1].players[1]
             ];
 
-        public Game GameInitializer()
+        public Game GameInitializer(Lobby lobby)
         {
             Game game = new()
             {
-                Players = SetPlayers()
+                Players = SetPlayers(lobby.ConnectedPlayers)
             };
             int teamRandomResult = new Random().Next(0, 2); // 0 or 1
             int playerRandomResult = new Random().Next(0, 2); // 0 or 1
 
             game.Players[teamRandomResult].players[playerRandomResult].LastSplitter = true;
             game.Deck = new Deck();
+            
             lobby.GameStarted = true;
 
             logger.LogInformation("Game initialized with players: {Players}",
@@ -132,14 +139,14 @@ namespace BeloteEngine.Services.Services
             return game;
         }
 
-        private Team[] SetPlayers()
+        private static Team[] SetPlayers(List<Player> connectedPlayers)
         {
             Team team1 = new()
             {
                 players =
                 [
-                    lobby.ConnectedPlayers[0],
-                    lobby.ConnectedPlayers[2]
+                    connectedPlayers[0],
+                    connectedPlayers[2]
                 ],
                 Score = 0
             };
@@ -148,8 +155,8 @@ namespace BeloteEngine.Services.Services
             {
                 players =
                 [
-                    lobby.ConnectedPlayers[1],
-                    lobby.ConnectedPlayers[3]
+                    connectedPlayers[1],
+                    connectedPlayers[3]
                 ],
                 Score = 0
             };
@@ -172,7 +179,7 @@ namespace BeloteEngine.Services.Services
             currPlayer.AnnounceOffer = announce;
         }
 
-        public Player NextPlayerToAnnounce(Player currPlayer)
+        public Player NextPlayerToAnnounce(Lobby lobby, Player currPlayer)
         {
             if (currPlayer.AnnounceOffer == None)
             {
@@ -185,7 +192,7 @@ namespace BeloteEngine.Services.Services
                     logger.LogInformation("Current announce updated to: {Announce}", currPlayer.AnnounceOffer);
                     lobby.Game.CurrentAnnounce = currPlayer.AnnounceOffer;
 
-                    return GetNextPlayer(lobby.Game.Players, currPlayer);
+                    return GetNextPlayer(lobby, currPlayer);
                 }
                 else throw new InvalidOperationException("Current announce cannot be lower than the previous one!");
             }
@@ -210,22 +217,23 @@ namespace BeloteEngine.Services.Services
         //    }
         //}
 
-        public Game GameReset(Game game)
+        public Game GameReset(Lobby lobby)
         {
+            var game = lobby.Game;
             game.CurrentAnnounce = None;
             game.PassCounter = 0;
 
-            return InitialPhase(game);
+            return InitialPhase(lobby);
         }
 
-        public Game NextGame(Game game)
+        public Game NextGame(Lobby lobby)
         {
             //Calculate points
-
+            var game = lobby.Game;
             game.CurrentAnnounce = None;
             game.PassCounter = 0;
 
-            return InitialPhase(game);
+            return InitialPhase(lobby);
         }
 
         public Game Creator() => new();
