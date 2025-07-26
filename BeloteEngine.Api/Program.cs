@@ -11,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
@@ -22,8 +23,8 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddSingleton<ILobby, Lobby>();
-builder.Services.AddSingleton<ILobbyService, LobbyService>();
-builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddScoped<ILobbyService, LobbyService>();
+builder.Services.AddScoped<IGameService, GameService>();
 
 var app = builder.Build();
 
@@ -38,9 +39,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseWebSockets(); // Moved earlier in pipeline
 app.UseCors("AllowFrontend");
 app.UseRouting();
+// Add Authentication if you plan to use it
+// app.UseAuthentication();
 app.UseAuthorization();
+
+// Use endpoint routing for WebSockets
+app.MapGet("/ws/lobby", async context =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        var playerId = context.Request.Query["playerId"];
+
+        // You need to implement this function
+        // await HandleWebSocketConnection(webSocket, playerId);
+    }
+    else
+    {
+        context.Response.StatusCode = 400;
+    }
+});
 
 // Map endpoints
 app.MapControllers();

@@ -5,7 +5,13 @@ namespace BeloteEngine.Services.Contracts
 {
     public interface IGameService
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Game"/> class.
+        /// </summary>
+        /// <returns>A <see cref="Game"/> object representing the initialized game state.</returns>
         public Game GameInitializer();
+
+        public Game Creator();
 
         public Game InitialPhase(Game game);
 

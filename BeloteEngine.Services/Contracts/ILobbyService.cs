@@ -4,7 +4,7 @@ namespace BeloteEngine.Services.Contracts
 {
     public interface ILobbyService
     {
-        public ILobby CreateLobby();
+        //public ILobby CreateLobby();
         public Task<JoinResult> JoinLobby(Player player);
         public Task<bool> LeaveLobby(Player player);
         //Task<LobbyInfo> GetLobbyInfo();

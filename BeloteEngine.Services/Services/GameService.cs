@@ -227,5 +227,7 @@ namespace BeloteEngine.Services.Services
 
             return InitialPhase(game);
         }
+
+        public Game Creator() => new();
     }
 }

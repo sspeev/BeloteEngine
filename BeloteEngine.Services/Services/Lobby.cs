@@ -9,7 +9,11 @@ namespace BeloteEngine.Services.Services
         public bool GameStarted { get; set; }
         public DateTime CreatedAt { get; } = DateTime.UtcNow;
         public object LobbyLock { get; } = new();
-        public required Game Game { get; set; }
+        public required Game Game { get; set; } = new()
+        {
+            Players = new Team[2],
+            Deck = new Deck()
+        };
 
         public void Reset()
         {
