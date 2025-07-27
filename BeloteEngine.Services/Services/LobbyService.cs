@@ -66,7 +66,7 @@ namespace BeloteEngine.Services.Services
                     };
                 }
                 
-                if (lobby.ConnectedPlayers.Any(p => p.ConnectionId == player.ConnectionId))
+                if (lobby.ConnectedPlayers.Any(p => p.Name == player.Name))
                 {
                     return new JoinResult
                     {

@@ -23,8 +23,8 @@ builder.Services.AddCors(options =>
     );
 });
 
-builder.Services.AddScoped<ILobbyService, LobbyService>();
-builder.Services.AddScoped<IGameService, GameService>();
+builder.Services.AddSingleton<ILobbyService, LobbyService>();
+builder.Services.AddSingleton<IGameService, GameService>();
 
 var app = builder.Build();
 
@@ -34,7 +34,11 @@ app.Logger.LogInformation("Starting BeloteEngine API...");
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.EnableTryItOutByDefault();
+        c.InjectStylesheet("/swagger-ui/custom.css");
+    });
 }
 
 app.UseHttpsRedirection();
