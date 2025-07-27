@@ -29,7 +29,7 @@ namespace BeloteEngine.Services.Services
             } while (lobbies.ContainsKey(lobbyId));
             
             lobby.Id = lobbyId;
-            lobbies[lobbyId] = lobby;
+            lobbies.TryAdd(lobbyId, lobby);
             
             logger.LogInformation("New lobby created with ID {LobbyId}", lobbyId);
             return lobby;
