@@ -1,0 +1,162 @@
+/* Swagger Dark Mode Theme */
+:root {
+    --dark-bg: #1e1e1e;
+    --dark-bg-lighter: #252526;
+    --dark-text: #e0e0e0;
+    --dark-border: #444444;
+    --dark-highlight: #0078d4;
+    --dark-method-get: #61affe;
+    --dark-method-post: #49cc90;
+    --dark-method-put: #fca130;
+    --dark-method-delete: #f93e3e;
+    --dark-code-bg: #2d2d2d;
+}
+
+/* Main background and text */
+.swagger-ui, body {
+    background-color: var(--dark-bg) !important;
+    color: var(--dark-text) !important;
+}
+
+/* Headers */
+.swagger-ui .topbar {
+    background-color: var(--dark-bg-lighter) !important;
+}
+
+.swagger-ui .info .title,
+.swagger-ui .info h1, 
+.swagger-ui .info h2, 
+.swagger-ui .info h3, 
+.swagger-ui .info h4, 
+.swagger-ui .info h5,
+.swagger-ui .opblock-tag,
+.swagger-ui h1, 
+.swagger-ui h2, 
+.swagger-ui h3, 
+.swagger-ui h4, 
+.swagger-ui h5 {
+    color: var(--dark-text) !important;
+}
+
+/* Operation blocks */
+.swagger-ui .opblock {
+    background-color: var(--dark-bg-lighter) !important;
+    border-color: var(--dark-border) !important;
+}
+
+/* Operation summary */
+.swagger-ui .opblock .opblock-summary {
+    border-color: var(--dark-border) !important;
+}
+
+.swagger-ui .opblock .opblock-summary-description {
+    color: var(--dark-text) !important;
+}
+
+/* HTTP method colors */
+.swagger-ui .opblock.opblock-get {
+    border-color: var(--dark-method-get) !important;
+}
+
+.swagger-ui .opblock.opblock-post {
+    border-color: var(--dark-method-post) !important;
+}
+
+.swagger-ui .opblock.opblock-put {
+    border-color: var(--dark-method-put) !important;
+}
+
+.swagger-ui .opblock.opblock-delete {
+    border-color: var(--dark-method-delete) !important;
+}
+
+/* HTTP method badges */
+.swagger-ui .opblock .opblock-summary-method {
+    text-shadow: none !important;
+}
+
+/* Schema section */
+.swagger-ui .model,
+.swagger-ui section.models {
+    background-color: var(--dark-bg-lighter) !important;
+    border-color: var(--dark-border) !important;
+}
+
+.swagger-ui section.models .model-container,
+.swagger-ui section.models h4,
+.swagger-ui .model-title {
+    color: var(--dark-text) !important;
+}
+
+/* Tables */
+.swagger-ui table {
+    background-color: var(--dark-bg-lighter) !important;
+    color: var(--dark-text) !important;
+}
+
+.swagger-ui table thead tr th {
+    color: var(--dark-text) !important;
+    border-color: var(--dark-border) !important;
+}
+
+.swagger-ui table tbody tr td {
+    border-color: var(--dark-border) !important;
+}
+
+/* Code blocks */
+.swagger-ui .highlight-code {
+    background-color: var(--dark-code-bg) !important;
+}
+
+.swagger-ui .microlight {
+    background-color: var(--dark-code-bg) !important;
+    color: var(--dark-text) !important;
+}
+
+/* Buttons */
+.swagger-ui .btn {
+    background-color: var(--dark-bg-lighter) !important;
+    color: var(--dark-text) !important;
+    border-color: var(--dark-border) !important;
+}
+
+.swagger-ui .btn:hover {
+    background-color: var(--dark-highlight) !important;
+}
+
+/* Inputs */
+.swagger-ui input,
+.swagger-ui select,
+.swagger-ui textarea {
+    background-color: var(--dark-bg) !important;
+    color: var(--dark-text) !important;
+    border-color: var(--dark-border) !important;
+}
+
+/* Links */
+.swagger-ui a {
+    color: var(--dark-highlight) !important;
+}
+
+/* Authorization */
+.swagger-ui .auth-wrapper {
+    color: var(--dark-text) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark-border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-highlight);
+}

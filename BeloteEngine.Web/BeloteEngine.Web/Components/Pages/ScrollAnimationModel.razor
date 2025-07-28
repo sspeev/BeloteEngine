@@ -1,0 +1,148 @@
+﻿@page "/scroll-animation"
+@inject IJSRuntime JSRuntime
+
+<div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<header id="header">
+    <h2>Scroll Animation Demo</h2>
+</header>
+
+<section class="hero">
+    <h1>Scroll-Driven Animation</h1>
+    <p>Experience the power of modern web animations triggered by scroll interactions</p>
+    <div class="scroll-indicator">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 5v14m-7-7l7 7 7-7" />
+        </svg>
+    </div>
+</section>
+
+<section id="about">
+    <div class="content">
+        <h2 class="section-title fade-in">About Scroll Animations</h2>
+        <p class="fade-in">Scroll-driven animations create engaging and interactive user experiences by triggering visual effects as users scroll through a webpage. These animations can help guide users' attention, provide visual feedback, and make content more memorable and engaging.</p>
+        <div class="cards">
+            <div class="card fade-in" style="transition-delay: 0.1s;">
+                <div class="card-img">1</div>
+                <div class="card-content">
+                    <h3>Fade In</h3>
+                    <p>Elements appear as you scroll down the page, creating a dynamic revealing effect.</p>
+                </div>
+            </div>
+            <div class="card fade-in" style="transition-delay: 0.3s;">
+                <div class="card-img">2</div>
+                <div class="card-content">
+                    <h3>Parallax</h3>
+                    <p>Background elements move at different speeds than foreground content, creating depth.</p>
+                </div>
+            </div>
+            <div class="card fade-in" style="transition-delay: 0.5s;">
+                <div class="card-img">3</div>
+                <div class="card-content">
+                    <h3>Progress Tracking</h3>
+                    <p>Visual indicators that show how far a user has scrolled through the content.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="parallax-section">
+    <div class="parallax-bg" id="parallaxBg"></div>
+    <div class="parallax-content">
+        <h2>Parallax Effect</h2>
+        <p>Watch the background move at a different speed</p>
+    </div>
+</section>
+
+<section id="features">
+    <div class="content">
+        <h2 class="section-title fade-in">Implementation Features</h2>
+        <p class="fade-in">This demo showcases various scroll-driven animation techniques that you can implement in your Blazor pages:</p>
+        <div class="cards">
+            <div class="card fade-in" style="transition-delay: 0.1s;">
+                <div class="card-img">4</div>
+                <div class="card-content">
+                    <h3>Intersection Observer API</h3>
+                    <p>Efficiently detect when elements enter the viewport to trigger animations.</p>
+                </div>
+            </div>
+            <div class="card fade-in" style="transition-delay: 0.3s;">
+                <div class="card-img">5</div>
+                <div class="card-content">
+                    <h3>CSS Transitions</h3>
+                    <p>Smooth property changes controlled by JavaScript scroll events.</p>
+                </div>
+            </div>
+            <div class="card fade-in" style="transition-delay: 0.5s;">
+                <div class="card-img">6</div>
+                <div class="card-content">
+                    <h3>Scroll Progress Tracking</h3>
+                    <p>Calculate and visualize the user's progress through the page.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+        window.initScrollAnimations = function () {
+        // Progress bar functionality
+        const progressBar = document.getElementById('progressBar');
+        const totalHeight = document.body.scrollHeight - window.innerHeight;
+
+        // Header hide/show functionality
+        const header = document.getElementById('header');
+        let lastScrollTop = 0;
+
+        // Intersection Observer for fade-in elements
+        const fadeElements = document.querySelectorAll('.fade-in');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        fadeElements.forEach(element => {
+            observer.observe(element);
+        });
+
+        // Parallax effect
+        const parallaxBg = document.getElementById('parallaxBg');
+
+        // Update elements on scroll
+        window.addEventListener('scroll', () => {
+            // Update progress bar
+            const scrolled = window.scrollY;
+            const width = (scrolled / totalHeight) * 100;
+            progressBar.style.width = `${width}%`;
+
+            // Header hide/show logic
+            if (scrolled > lastScrollTop && scrolled > 100) {
+                // Scrolling down
+                header.classList.add('hidden');
+            } else {
+                // Scrolling up
+                header.classList.remove('hidden');
+            }
+            lastScrollTop = scrolled;
+
+            // Parallax effect
+            if (parallaxBg) {
+                parallaxBg.style.transform = `translateY(${scrolled * 0.5}px)`;
+            }
+        });
+    };
+</script>
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initScrollAnimations");
+        }
+    }
+}
