@@ -154,5 +154,20 @@ namespace BeloteEngine.Services.Services
                 return null!;
             }
         }
+
+        public List<LobbyInfo> GetAvailableLobbies()
+        {
+            //new syntax for .ToList()
+            return [.. lobbies.Values
+                .Where(l => !l.GameStarted && l.ConnectedPlayers.Count < 4)
+                .Select(l => new LobbyInfo
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    PlayerCount = l.ConnectedPlayers.Count,
+                    IsFull = l.ConnectedPlayers.Count >= 4,
+                    GameStarted = l.GameStarted
+                })];
+        }
     }
 }
