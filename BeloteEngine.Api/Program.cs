@@ -51,21 +51,21 @@ app.UseRouting();
 app.UseAuthorization();
 
 // Use endpoint routing for WebSockets
-//app.MapGet("/ws/lobby", async context =>
-//{
-//    if (context.WebSockets.IsWebSocketRequest)
-//    {
-//        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-//        var playerId = context.Request.Query["playerId"];
+app.MapGet("/ws/lobby", async context =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        var playerId = context.Request.Query["playerId"];
 
-//        // You need to implement this function
-//        // await HandleWebSocketConnection(webSocket, playerId);
-//    }
-//    else
-//    {
-//        context.Response.StatusCode = 400;
-//    }
-//});
+        // You need to implement this function
+        await HandleWebSocketConnection(webSocket, playerId);
+    }
+    else
+    {
+        context.Response.StatusCode = 400;
+    }
+});
 
 // Map endpoints
 app.MapControllers();

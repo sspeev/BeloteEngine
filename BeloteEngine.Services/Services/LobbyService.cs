@@ -15,7 +15,7 @@ namespace BeloteEngine.Services.Services
         private readonly ConcurrentDictionary<int, Lobby> lobbies = new();
         private readonly object lockObject = new();
 
-        public Lobby CreateLobby()
+        public Lobby CreateLobby(string lobbyName)
         {
             var lobby = new Lobby
             {
@@ -29,6 +29,7 @@ namespace BeloteEngine.Services.Services
             } while (lobbies.ContainsKey(lobbyId));
             
             lobby.Id = lobbyId;
+            lobby.Name = lobbyName;
             lobbies.TryAdd(lobbyId, lobby);
             
             logger.LogInformation("New lobby created with ID {LobbyId}", lobbyId);

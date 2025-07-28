@@ -1,5 +1,7 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Api.Models;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
@@ -25,10 +27,10 @@ namespace BeloteEngine.Api.Hubs
         //    lobby.Game =  gameService.GameInitializer();
         //}
 
-        //public Task JoinGame(Player player)
-        //{
-        //    return lobbyService.JoinLobby(player);
-        //}
+        public Task JoinGame(Player player)
+        {
+
+        }
 
         //public Task SendMove(string gameId, object moveData)
         //{
