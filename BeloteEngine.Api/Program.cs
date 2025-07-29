@@ -24,6 +24,7 @@ builder.Services.AddCors(options =>
             .AllowCredentials()); // Added for SignalR
 });
 
+builder.Services.AddSingleton<IWebSocketService, WebSocketService>();
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 
@@ -62,7 +63,8 @@ app.Map("/ws/lobby", async context =>
     {
         var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         var playerId = context.Request.Query["playerId"];
-        await HandleWebSocketConnection(webSocket, playerId);
+        var webSocketService = context.RequestServices.GetRequiredService<IWebSocketService>();
+        await webSocketService.HandleConnectionAsync(webSocket, playerId);
     }
     else
     {
@@ -73,42 +75,3 @@ app.Map("/ws/lobby", async context =>
 app.MapFallbackToFile("index.html");
 
 await app.RunAsync();
-
-// WebSocket handler implementation
-//this should be somewhere else
-static async Task HandleWebSocketConnection(WebSocket webSocket, string playerId)
-{
-    var buffer = new byte[1024 * 4];
-    
-    try
-    {
-        while (webSocket.State == WebSocketState.Open)
-        {
-            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            
-            if (result.MessageType == WebSocketMessageType.Text)
-            {
-                var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                // Handle the message
-                Console.WriteLine($"Received from {playerId}: {message}");
-                
-                // Echo back
-                var responseMessage = $"Echo: {message}";
-                var responseBytes = Encoding.UTF8.GetBytes(responseMessage);
-                await webSocket.SendAsync(
-                    new ArraySegment<byte>(responseBytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None);
-            }
-            else if (result.MessageType == WebSocketMessageType.Close)
-            {
-                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"WebSocket error: {ex.Message}");
-    }
-}
