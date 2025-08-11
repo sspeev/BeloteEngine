@@ -1,5 +1,4 @@
-﻿using BeloteEngine.Data.Entities.Models;
-using BeloteEngine.Services.Contracts;
+﻿using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs

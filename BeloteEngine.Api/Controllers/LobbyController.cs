@@ -47,10 +47,15 @@ namespace BeloteEngine.Api.Controllers
 
             return Ok(new
             {
-                LobbyId = lobby.Id,
-                PlayerCount = lobby.ConnectedPlayers.Count,
-                LobbyName = request.LobbyName
+                Lobby = lobby
             });
+        }
+
+        [HttpGet("listLobbies")]
+        public IActionResult GetAvailableLobbies()
+        {
+            var lobbies = lobbyService.GetAvailableLobbies();
+            return Ok(lobbies);
         }
 
         [HttpPost("join")]
@@ -67,13 +72,6 @@ namespace BeloteEngine.Api.Controllers
 
             var lobby = lobbyService.GetLobby(request.LobbyId);
 
-            // Notify all clients in the lobby about the new player
-            await hubContext.Clients.All.SendAsync("PlayerJoined", new
-            {
-                LobbyId = request.LobbyId,
-                PlayerName = request.PlayerName,
-                PlayerCount = lobby.ConnectedPlayers.Count
-            });
 
             // Start game when 4 players join
             if (lobby.ConnectedPlayers.Count == 4)
@@ -84,10 +82,8 @@ namespace BeloteEngine.Api.Controllers
 
             return Ok(new
             {
-                joinResult.Success,
-                joinResult.ErrorMessage,
-                request.LobbyId,
-                PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
+                Lobby = lobby,
+                Error = joinResult.ErrorMessage
             });
         }
 
@@ -113,28 +109,18 @@ namespace BeloteEngine.Api.Controllers
         //        return Ok(new { Success = success });
         //    }
 
-        //    [HttpGet("list")]
-        //    public IActionResult GetAvailableLobbies()
-        //    {
-        //        var lobbies = lobbyService.GetAvailableLobbies();
-        //        return Ok(lobbies);
-        //    }
+        [HttpGet("{lobbyId}")]
+        public IActionResult GetLobbyState(int lobbyId)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if (lobby == null)
+                return NotFound("Lobby not found.");
 
-        //    [HttpGet("{lobbyId}/state")]
-        //    public IActionResult GetLobbyState(int lobbyId)
-        //    {
-        //        var lobby = lobbyService.GetLobby(lobbyId);
-        //        if (lobby == null)
-        //            return NotFound("Lobby not found.");
-
-        //        return Ok(new {
-        //            LobbyId = lobby.Id,
-        //            LobbyName = lobby.Name,
-        //            Players = lobby.ConnectedPlayers.Select(p => p.Name),
-        //            PlayerCount = lobby.ConnectedPlayers.Count,
-        //            GameStarted = lobby.GameStarted
-        //        });
-        //    }
+            return Ok(new
+            {
+                Lobby = lobby
+            });
+        }
         //}
 
         //public class LeaveRequest
