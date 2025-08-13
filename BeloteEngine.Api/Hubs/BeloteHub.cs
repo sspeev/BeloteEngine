@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
 {
-    public class BeloteHub(
+    public sealed class BeloteHub(
         ILogger<BeloteHub> _logger,
         ILobbyService _lobbyService) : Hub
     {

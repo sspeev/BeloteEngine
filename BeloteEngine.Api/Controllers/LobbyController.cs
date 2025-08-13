@@ -66,12 +66,11 @@ namespace BeloteEngine.Api.Controllers
 
             var player = new Player { Name = request.PlayerName, ConnectionId = request.LobbyId, IsConnected = true };
             var joinResult = lobbyService.JoinLobby(player);
-
+            
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
             var lobby = lobbyService.GetLobby(request.LobbyId);
-
 
             // Start game when 4 players join
             if (lobby.ConnectedPlayers.Count == 4)
