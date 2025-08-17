@@ -78,7 +78,11 @@ namespace BeloteEngine.Services.Services
                 
                 lobby.ConnectedPlayers.Add(player);
                 
-                return new JoinResult { Success = true };
+                return new JoinResult 
+                { 
+                    Success = true,
+                    Lobby = lobby
+                };
             }
         }
 

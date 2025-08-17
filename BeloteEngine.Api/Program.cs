@@ -100,13 +100,6 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(new StaticFileOptions
-{
-    OnPrepareResponse = ctx =>
-    {
-        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=31536000");
-    }
-});
 app.UseCors("AllowFrontend");
 app.UseRouting();
 app.UseAuthorization();
@@ -125,7 +118,6 @@ app.MapHub<BeloteHub>("/beloteHub", options =>
     options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
                         Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
 });
-app.MapFallbackToFile("index.html");
 
 try
 {

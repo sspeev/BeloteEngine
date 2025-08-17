@@ -10,13 +10,11 @@ namespace BeloteEngine.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class LobbyController(
-        //ILogger<GameController> _logger
-        IHubContext<BeloteHub> _hubContext
-        , ILobbyService _lobbyService
-        , IGameService _gameService
-        ) : ControllerBase
+        IHubContext<BeloteHub> _hubContext,
+        ILobbyService _lobbyService,
+        IGameService _gameService
+    ) : ControllerBase
     {
-        //private readonly ILogger<GameController> logger = _logger;
         private readonly IHubContext<BeloteHub> hubContext = _hubContext;
         private readonly ILobbyService lobbyService = _lobbyService;
         private readonly IGameService gameService = _gameService;
@@ -26,28 +24,29 @@ namespace BeloteEngine.Api.Controllers
         {
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
-
             if (string.IsNullOrWhiteSpace(request.LobbyName))
                 return BadRequest("Lobby name cannot be empty.");
 
             var lobby = lobbyService.CreateLobby(request.LobbyName);
+
+            // Note: ConnectionId is (mis)used here to carry LobbyId for JoinLobby
             var player = new Player { Name = request.PlayerName, ConnectionId = lobby.Id, IsConnected = true };
             var joinResult = lobbyService.JoinLobby(player);
-
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
-            // Notify all clients about the new lobby
-            await hubContext.Clients.All.SendAsync("LobbyCreated", new
-            {
-                LobbyId = lobby.Id,
-                LobbyName = lobby.Name,
-                PlayerCount = lobby.ConnectedPlayers.Count
-            });
+            // Notify only the lobby group with the full players list
+            await hubContext.Clients.Group($"Lobby_{lobby.Id}")
+                .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
 
             return Ok(new
             {
-                Lobby = lobby
+                lobby = new
+                {
+                    lobby.Id,
+                    lobby.Name,
+                    connectedPlayers = lobby.ConnectedPlayers
+                }
             });
         }
 
@@ -64,25 +63,32 @@ namespace BeloteEngine.Api.Controllers
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
 
+            // Note: ConnectionId carries LobbyId for LobbyService.JoinLobby
             var player = new Player { Name = request.PlayerName, ConnectionId = request.LobbyId, IsConnected = true };
             var joinResult = lobbyService.JoinLobby(player);
-            
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
             var lobby = lobbyService.GetLobby(request.LobbyId);
 
-            // Start game when 4 players join
+            // Broadcast to the lobby group only, and send the full player list so all tabs can render the same count
+            await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
+
             if (lobby.ConnectedPlayers.Count == 4)
             {
                 gameService.GameInitializer(lobby);
-                await hubContext.Clients.All.SendAsync("GameStarted", new { LobbyId = request.LobbyId });
+                await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                    .SendAsync("GameStarted", new { LobbyId = request.LobbyId });
             }
 
             return Ok(new
             {
-                Lobby = lobby,
-                Error = joinResult.ErrorMessage
+                joinResult.Success,
+                joinResult.ErrorMessage,
+                LobbyId = request.LobbyId,
+                PlayerName = request.PlayerName,
+                PlayerCount = lobby.ConnectedPlayers.Count
             });
         }
 

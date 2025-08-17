@@ -132,6 +132,8 @@ namespace BeloteEngine.Services.Services
             game.Players[teamRandomResult].players[playerRandomResult].LastSplitter = true;
             game.Deck = new Deck();
             
+            // Assign the game to the lobby
+            lobby.Game = game;
             lobby.GameStarted = true;
 
             logger.LogInformation("Game initialized with players: {Players}",
