@@ -58,7 +58,7 @@ namespace BeloteEngine.Api.Controllers
         }
 
         [HttpPost("join")]
-        public async Task<IActionResult> Join([FromBody] RequestInfo request)
+        public async Task<IActionResult> JoinLobby([FromBody] RequestInfo request)
         {
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
@@ -79,16 +79,13 @@ namespace BeloteEngine.Api.Controllers
             {
                 gameService.GameInitializer(lobby);
                 await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
-                    .SendAsync("GameStarted", new { LobbyId = request.LobbyId });
+                    .SendAsync("GameStarted", new { request.LobbyId });
             }
 
             return Ok(new
             {
-                joinResult.Success,
-                joinResult.ErrorMessage,
-                LobbyId = request.LobbyId,
-                PlayerName = request.PlayerName,
-                PlayerCount = lobby.ConnectedPlayers.Count
+                joinResult.Lobby,
+                joinResult.ErrorMessage
             });
         }
 
