@@ -111,7 +111,6 @@ namespace BeloteEngine.Services.Services
                     lobby.GameStarted = false;
                 }
                 
-                // Remove lobby if empty
                 if (lobby.ConnectedPlayers.Count == 0)
                 {
                     lobbies.TryRemove(lobbyId, out _);

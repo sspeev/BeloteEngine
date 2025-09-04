@@ -4,11 +4,10 @@ using Microsoft.AspNetCore.SignalR;
 namespace BeloteEngine.Api.Hubs
 {
     public class BeloteHub(
-        ILogger<BeloteHub> _logger,
-        ILobbyService _lobbyService) : Hub
+        ILogger<BeloteHub> _logger
+        ) : Hub
     {
         private readonly ILogger<BeloteHub> logger = _logger;
-        private readonly ILobbyService lobbyService = _lobbyService;
 
         public override async Task OnConnectedAsync()
         {

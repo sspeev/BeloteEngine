@@ -4,7 +4,6 @@ using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using static BeloteEngine.Data.Entities.Enums.Status;
 
 namespace BeloteEngine.Api.Controllers
 {
@@ -21,7 +20,7 @@ namespace BeloteEngine.Api.Controllers
         private readonly IGameService gameService = _gameService;
 
         [HttpPost("create")]
-        public async Task<IActionResult> CreateLobby([FromBody] RequestInfo request)
+        public async Task<IActionResult> CreateLobby([FromBody] RequestInfoModel request)
         {
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
@@ -30,11 +29,11 @@ namespace BeloteEngine.Api.Controllers
 
             var lobby = lobbyService.CreateLobby(request.LobbyName);
 
-            var player = new Player() 
-            { 
+            var player = new Player()
+            {
                 Name = request.PlayerName,
                 LobbyId = lobby.Id,
-                Hoster = true 
+                Hoster = true
             };
             var joinResult = lobbyService.JoinLobby(player);
             if (!joinResult.Success)
@@ -62,7 +61,7 @@ namespace BeloteEngine.Api.Controllers
         }
 
         [HttpPost("join")]
-        public async Task<IActionResult> JoinLobby([FromBody] RequestInfo request)
+        public async Task<IActionResult> JoinLobby([FromBody] RequestInfoModel request)
         {
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
@@ -91,27 +90,42 @@ namespace BeloteEngine.Api.Controllers
             });
         }
 
-        //    [HttpPost("leave")]
-        //    public async Task<IActionResult> Leave([FromBody] LeaveRequest request)
-        //    {
-        //        if (string.IsNullOrWhiteSpace(request.PlayerName))
-        //            return BadRequest("Player name cannot be empty.");
+        [HttpPost("leave")]
+        public async Task<IActionResult> LeaveLobby([FromBody] LeaveRequestModel request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.PlayerName))
+                    return BadRequest("Player name cannot be empty.");
 
-        //        var player = new Player { Name = request.PlayerName, ConnectionId = request.LobbyId };
-        //        var success = lobbyService.LeaveLobby(player, request.LobbyId);
+                var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
+                var success = lobbyService.LeaveLobby(player, request.LobbyId);
 
-        //        if (success)
-        //        {
-        //            var lobby = lobbyService.GetLobby(request.LobbyId);
-        //            await hubContext.Clients.All.SendAsync("PlayerLeft", new {
-        //                LobbyId = request.LobbyId,
-        //                PlayerName = request.PlayerName,
-        //                PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
-        //            });
-        //        }
+                if (success)
+                {
+                    var lobby = lobbyService.GetLobby(request.LobbyId);
+                    await hubContext.Clients.All.SendAsync("PlayerLeft", new
+                    {
+                        LobbyId = request.LobbyId,
+                        PlayerName = request.PlayerName,
+                        PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
+                    });
+                    var isHosterHere = lobby.ConnectedPlayers.Any(p => p.Hoster);
+                    if (!isHosterHere)
+                    {
+                        throw new Exception("Hoster left the lobby. All players have been disconected!");
+                    }
+                }
 
-        //        return Ok(new { Success = success });
-        //    }
+                return Ok(new { Success = success });
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
+        }
 
         [HttpGet("{lobbyId}")]
         public IActionResult GetLobbyState(int lobbyId)
@@ -125,12 +139,5 @@ namespace BeloteEngine.Api.Controllers
                 Lobby = lobby
             });
         }
-        //}
-
-        //public class LeaveRequest
-        //{
-        //    public string PlayerName { get; set; } = string.Empty;
-        //    public int LobbyId { get; set; }
-        //}
     }
 }
