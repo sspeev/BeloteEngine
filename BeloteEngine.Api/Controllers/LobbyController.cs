@@ -93,38 +93,30 @@ namespace BeloteEngine.Api.Controllers
         [HttpPost("leave")]
         public async Task<IActionResult> LeaveLobby([FromBody] LeaveRequestModel request)
         {
-            try
+            if (string.IsNullOrWhiteSpace(request.PlayerName))
+                return BadRequest("Player name cannot be empty.");
+
+            var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
+            var success = lobbyService.LeaveLobby(player, request.LobbyId);
+
+            if (success)
             {
-                if (string.IsNullOrWhiteSpace(request.PlayerName))
-                    return BadRequest("Player name cannot be empty.");
-
-                var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
-                var success = lobbyService.LeaveLobby(player, request.LobbyId);
-
-                if (success)
+                var lobby = lobbyService.GetLobby(request.LobbyId);
+                await hubContext.Clients.All.SendAsync("PlayerLeft", new
                 {
-                    var lobby = lobbyService.GetLobby(request.LobbyId);
-                    await hubContext.Clients.All.SendAsync("PlayerLeft", new
-                    {
-                        LobbyId = request.LobbyId,
-                        PlayerName = request.PlayerName,
-                        PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
-                    });
-                    var isHosterHere = lobby.ConnectedPlayers.Any(p => p.Hoster);
-                    if (!isHosterHere)
-                    {
-                        throw new Exception("Hoster left the lobby. All players have been disconected!");
-                    }
+                    LobbyId = request.LobbyId,
+                    PlayerName = request.PlayerName,
+                    PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
+                });
+                var isHosterHere = lobby.ConnectedPlayers.Any(p => p.Hoster);
+                if (!isHosterHere)
+                {
+                    lobbyService.ResetLobby(lobby.Id);
+                    return Ok(new { Success = success, IsHosterHere = isHosterHere });
                 }
-
-                return Ok(new { Success = success });
-            }
-            catch (Exception)
-            {
-
-                throw;
             }
 
+            return Ok(new { Success = success });
         }
 
         [HttpGet("{lobbyId}")]
