@@ -4,6 +4,7 @@ using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using static BeloteEngine.Data.Entities.Enums.Status;
 
 namespace BeloteEngine.Api.Controllers
 {
@@ -29,13 +30,16 @@ namespace BeloteEngine.Api.Controllers
 
             var lobby = lobbyService.CreateLobby(request.LobbyName);
 
-            // Note: ConnectionId is (mis)used here to carry LobbyId for JoinLobby
-            var player = new Player { Name = request.PlayerName, ConnectionId = lobby.Id, IsConnected = true };
+            var player = new Player() 
+            { 
+                Name = request.PlayerName,
+                LobbyId = lobby.Id,
+                Hoster = true 
+            };
             var joinResult = lobbyService.JoinLobby(player);
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
-            // Notify only the lobby group with the full players list
             await hubContext.Clients.Group($"Lobby_{lobby.Id}")
                 .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
 
@@ -63,15 +67,13 @@ namespace BeloteEngine.Api.Controllers
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
 
-            // Note: ConnectionId carries LobbyId for LobbyService.JoinLobby
-            var player = new Player { Name = request.PlayerName, ConnectionId = request.LobbyId, IsConnected = true };
+            var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
             var joinResult = lobbyService.JoinLobby(player);
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
             var lobby = lobbyService.GetLobby(request.LobbyId);
 
-            // Broadcast to the lobby group only, and send the full player list so all tabs can render the same count
             await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
                 .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
 

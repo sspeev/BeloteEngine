@@ -5,12 +5,14 @@ namespace BeloteEngine.Data.Entities.Models
     public class Player
     {
         //public int Id { get; set; }
-        public Player() => Cards = new();
-        public int? ConnectionId { get; set; }
+        public Player() => Cards = [];
+        public int? LobbyId { get; set; }
 
         public required string Name { get; set; }
 
-        public bool IsConnected { get; set; }
+        public bool Hoster { get; set; }
+
+        public Status Status { get; set; } = Status.Disconnected;
 
         public bool LastSplitter { get; set; } = false;
 

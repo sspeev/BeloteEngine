@@ -2,6 +2,7 @@
 using BeloteEngine.Services.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using static BeloteEngine.Data.Entities.Enums.Status;
 
 namespace BeloteEngine.Services.Services
 {
@@ -21,8 +22,6 @@ namespace BeloteEngine.Services.Services
             {
                 Game = gameService.Creator()
             };
-            
-            // Generate unique ID and add to dictionary
             int lobbyId;
             do {
                 lobbyId = new Random().Next(1000, 9999);
@@ -38,7 +37,7 @@ namespace BeloteEngine.Services.Services
 
         public JoinResult JoinLobby(Player player)
         {
-            int lobbyId = player.ConnectionId ?? 0;
+            int lobbyId = player.LobbyId ?? 0;
             if (lobbyId == 0)
             {
                 return new JoinResult
@@ -77,6 +76,8 @@ namespace BeloteEngine.Services.Services
                 }
                 
                 lobby.ConnectedPlayers.Add(player);
+                player.Status = Connected;
+                player.LobbyId = lobbyId;
                 
                 return new JoinResult 
                 { 
@@ -96,7 +97,7 @@ namespace BeloteEngine.Services.Services
             lock (lockObject)
             {
                 var playerToRemove = lobby.ConnectedPlayers
-                    .FirstOrDefault(p => p.ConnectionId == player.ConnectionId);
+                    .FirstOrDefault(p => p.LobbyId == player.LobbyId);
                     
                 if (playerToRemove == null)
                 {
