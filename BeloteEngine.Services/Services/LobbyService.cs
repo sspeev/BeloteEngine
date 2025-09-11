@@ -3,6 +3,7 @@ using BeloteEngine.Services.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using static BeloteEngine.Data.Entities.Enums.Status;
+using static System.StringComparison;
 
 namespace BeloteEngine.Services.Services
 {
@@ -35,6 +36,13 @@ namespace BeloteEngine.Services.Services
             return lobby;
         }
 
+        private static void CompactPlayers(List<Player> players)
+        {
+            players.RemoveAll(p => p is null);
+        }
+
+        private static int NonNullCount(List<Player> players) => players.Count(p => p is not null);
+
         public JoinResult JoinLobby(Player player)
         {
             int lobbyId = player.LobbyId ?? 0;
@@ -54,9 +62,11 @@ namespace BeloteEngine.Services.Services
                     ErrorMessage = $"Lobby {lobbyId} does not exist."
                 };
             }
-
+            
             lock (lockObject)
             {
+                CompactPlayers(lobby.ConnectedPlayers);
+
                 if (IsFull(lobbyId))
                 {
                     return new JoinResult
@@ -66,7 +76,8 @@ namespace BeloteEngine.Services.Services
                     };
                 }
                 
-                if (lobby.ConnectedPlayers.Any(p => p.Name == player.Name))
+                if (lobby.ConnectedPlayers.Any(p => p is not null && 
+                                                    string.Equals(p.Name, player.Name, OrdinalIgnoreCase)))
                 {
                     return new JoinResult
                     {
@@ -96,22 +107,30 @@ namespace BeloteEngine.Services.Services
 
             lock (lockObject)
             {
-                var playerToRemove = lobby.ConnectedPlayers
-                    .FirstOrDefault(p => p.LobbyId == player.LobbyId);
-                    
-                if (playerToRemove == null)
+                // Remove by stable key (Name) and clean up any nulls left behind
+                int removed = lobby.ConnectedPlayers.RemoveAll(p =>
+                    p is not null &&
+                    string.Equals(p.Name, player.Name, OrdinalIgnoreCase));
+
+                // As a fallback, remove by reference if nothing matched
+                if (removed == 0)
+                {
+                    removed = lobby.ConnectedPlayers.RemoveAll(p => ReferenceEquals(p, player));
+                }
+
+                CompactPlayers(lobby.ConnectedPlayers);
+
+                if (removed == 0)
                 {
                     return false;
                 }
                 
-                lobby.ConnectedPlayers.Remove(playerToRemove);
-                
-                if (lobby.ConnectedPlayers.Count < 4)
+                if (NonNullCount(lobby.ConnectedPlayers) < 4)
                 {
                     lobby.GameStarted = false;
                 }
                 
-                if (lobby.ConnectedPlayers.Count == 0)
+                if (NonNullCount(lobby.ConnectedPlayers) == 0)
                 {
                     lobbies.TryRemove(lobbyId, out _);
                     logger.LogInformation("Lobby {LobbyId} removed as it's empty", lobbyId);
@@ -125,8 +144,9 @@ namespace BeloteEngine.Services.Services
         {
             if (lobbies.TryGetValue(lobbyId, out var lobby))
             {
+                CompactPlayers(lobby.ConnectedPlayers);
                 logger.LogInformation("Lobby {LobbyId} updated. Players: {PlayerCount}, Game started: {GameStarted}",
-                    lobbyId, lobby.ConnectedPlayers.Count, lobby.GameStarted);
+                    lobbyId, NonNullCount(lobby.ConnectedPlayers), lobby.GameStarted);
             }
             return Task.CompletedTask;
         }
@@ -139,17 +159,23 @@ namespace BeloteEngine.Services.Services
                 {
                     lobby.ConnectedPlayers.Clear();
                     lobby.GameStarted = false;
-                    // Assuming Reset() resets the game state
                     lobby.Game = gameService.Creator();
                 }
             }
         }
-        public bool IsFull(int lobbyId) => lobbies[lobbyId].ConnectedPlayers.Count >= 4;
+
+        public bool IsFull(int lobbyId)
+        {
+            var lobby = lobbies[lobbyId];
+            CompactPlayers(lobby.ConnectedPlayers);
+            return NonNullCount(lobby.ConnectedPlayers) >= 4;
+        }
 
         public Lobby GetLobby(int lobbyId)
         {
             if (lobbies.TryGetValue(lobbyId, out var lobby))
             {
+                CompactPlayers(lobby.ConnectedPlayers);
                 return lobby;
             }
             else
@@ -161,15 +187,19 @@ namespace BeloteEngine.Services.Services
 
         public List<LobbyInfo> GetAvailableLobbies()
         {
-            //new syntax for .ToList()
             return [.. lobbies.Values
-                .Where(l => !l.GameStarted && l.ConnectedPlayers.Count < 4)
+                .Select(l =>
+                {
+                    CompactPlayers(l.ConnectedPlayers);
+                    return l;
+                })
+                .Where(l => !l.GameStarted && NonNullCount(l.ConnectedPlayers) < 4)
                 .Select(l => new LobbyInfo
                 {
                     Id = l.Id,
                     Name = l.Name,
-                    PlayerCount = l.ConnectedPlayers.Count,
-                    IsFull = l.ConnectedPlayers.Count >= 4,
+                    PlayerCount = NonNullCount(l.ConnectedPlayers),
+                    IsFull = NonNullCount(l.ConnectedPlayers) >= 4,
                     GameStarted = l.GameStarted
                 })];
         }
