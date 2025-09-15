@@ -1,114 +1,137 @@
 using BeloteEngine.Api.Hubs;
-using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Services;
-using Microsoft.AspNetCore.SignalR;
-using System.Net.WebSockets;
-using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddSignalR();
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.SuppressModelStateInvalidFilter = false;
+    })
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { 
+        Title = "Belote Engine API", 
+        Version = "v1",
+        Description = "API for managing Belote game lobbies and gameplay"
+    });
+});
+
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+    options.KeepAliveInterval = TimeSpan.FromMinutes(2);
+    options.MaximumReceiveMessageSize = 102400; // 100 KB
+});
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy => policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials()); // Added for SignalR
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins("https://yourdomain.com", "https://www.yourdomain.com")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+    });
 });
 
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
-
-var app = builder.Build();
-
-app.Logger.LogInformation("Starting BeloteEngine API...");
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+builder.Services.AddLogging(logging =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    logging.ClearProviders();
+    logging.AddConsole();
+    if (builder.Environment.IsDevelopment())
     {
-        c.EnableTryItOutByDefault();
-        c.InjectStylesheet("/swagger-ui/custom.css");
-    });
-}
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-// CORS must come before routing for SignalR
-app.UseCors("AllowFrontend");
-app.UseWebSockets();
-app.UseRouting();
-app.UseAuthorization();
-
-// Map endpoints
-app.MapControllers();
-app.MapHub<BeloteHub>("/beloteHub");
-
-// WebSocket endpoint (if you really need it alongside SignalR)
-app.Map("/ws/lobby", async context =>
-{
-    if (context.WebSockets.IsWebSocketRequest)
-    {
-        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        var playerId = context.Request.Query["playerId"];
-        await HandleWebSocketConnection(webSocket, playerId);
+        logging.AddDebug();
+        logging.SetMinimumLevel(LogLevel.Debug);
     }
     else
     {
-        context.Response.StatusCode = 400;
+        logging.SetMinimumLevel(LogLevel.Information);
     }
 });
+builder.Services.AddHealthChecks();
 
-app.MapFallbackToFile("index.html");
+var app = builder.Build();
 
-await app.RunAsync();
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Starting Belote Engine API v1.0...");
+logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
 
-// WebSocket handler implementation
-//this should be somewhere else
-static async Task HandleWebSocketConnection(WebSocket webSocket, string playerId)
+if (app.Environment.IsDevelopment())
 {
-    var buffer = new byte[1024 * 4];
+    app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Belote Engine API v1");
+        c.RoutePrefix = "swagger";
+        c.EnableTryItOutByDefault();
+        c.InjectStylesheet("/swagger-ui/custom.css");
+        c.DocumentTitle = "Belote Engine API Documentation";
+    });
+}
+else
+{
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
+app.UseRouting();
+app.UseAuthorization();
+app.MapHealthChecks("/health");
+
+// Global error handling endpoint
+app.Map("/error", (HttpContext context) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    logger.LogError("Unhandled exception occurred");
+    return Results.Problem("An error occurred while processing your request");
+});
+app.MapControllers();
+app.MapHub<BeloteHub>("/beloteHub", options =>
+{
+    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
+                        Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+});
+
+try
+{
+    logger.LogInformation("Belote Engine API started successfully on {Urls}", 
+        string.Join(", ", app.Urls));
     
-    try
-    {
-        while (webSocket.State == WebSocketState.Open)
-        {
-            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            
-            if (result.MessageType == WebSocketMessageType.Text)
-            {
-                var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                // Handle the message
-                Console.WriteLine($"Received from {playerId}: {message}");
-                
-                // Echo back
-                var responseMessage = $"Echo: {message}";
-                var responseBytes = Encoding.UTF8.GetBytes(responseMessage);
-                await webSocket.SendAsync(
-                    new ArraySegment<byte>(responseBytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None);
-            }
-            else if (result.MessageType == WebSocketMessageType.Close)
-            {
-                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"WebSocket error: {ex.Message}");
-    }
+    await app.RunAsync();
+}
+catch (Exception ex)
+{
+    logger.LogCritical(ex, "Application failed to start");
+    throw;
+}
+finally
+{
+    logger.LogInformation("Belote Engine API shutting down...");
 }

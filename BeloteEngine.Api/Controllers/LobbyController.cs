@@ -10,137 +10,126 @@ namespace BeloteEngine.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class LobbyController(
-        //ILogger<GameController> _logger
-        IHubContext<BeloteHub> _hubContext
-        , ILobbyService _lobbyService
-        , IGameService _gameService
-        ) : ControllerBase
+        IHubContext<BeloteHub> _hubContext,
+        ILobbyService _lobbyService,
+        IGameService _gameService
+    ) : ControllerBase
     {
-        //private readonly ILogger<GameController> logger = _logger;
         private readonly IHubContext<BeloteHub> hubContext = _hubContext;
         private readonly ILobbyService lobbyService = _lobbyService;
         private readonly IGameService gameService = _gameService;
 
         [HttpPost("create")]
-        public async Task<IActionResult> CreateLobby([FromBody] RequestInfo request)
+        public async Task<IActionResult> CreateLobby([FromBody] RequestInfoModel request)
         {
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
-
             if (string.IsNullOrWhiteSpace(request.LobbyName))
                 return BadRequest("Lobby name cannot be empty.");
 
             var lobby = lobbyService.CreateLobby(request.LobbyName);
-            var player = new Player { Name = request.PlayerName, ConnectionId = lobby.Id, IsConnected = true };
-            var joinResult = lobbyService.JoinLobby(player);
 
+            var player = new Player()
+            {
+                Name = request.PlayerName,
+                LobbyId = lobby.Id,
+                Hoster = true
+            };
+            var joinResult = lobbyService.JoinLobby(player);
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
-            // Notify all clients about the new lobby
-            await hubContext.Clients.All.SendAsync("LobbyCreated", new
-            {
-                LobbyId = lobby.Id,
-                LobbyName = lobby.Name,
-                PlayerCount = lobby.ConnectedPlayers.Count
-            });
+            await hubContext.Clients.Group($"Lobby_{lobby.Id}")
+                .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
 
             return Ok(new
             {
-                LobbyId = lobby.Id,
-                PlayerCount = lobby.ConnectedPlayers.Count,
-                LobbyName = request.LobbyName
+                lobby = new
+                {
+                    lobby.Id,
+                    lobby.Name,
+                    connectedPlayers = lobby.ConnectedPlayers
+                }
             });
         }
 
+        [HttpGet("listLobbies")]
+        public IActionResult GetAvailableLobbies()
+        {
+            var lobbies = lobbyService.GetAvailableLobbies();
+            return Ok(lobbies);
+        }
+
         [HttpPost("join")]
-        public async Task<IActionResult> Join([FromBody] RequestInfo request)
+        public async Task<IActionResult> JoinLobby([FromBody] RequestInfoModel request)
         {
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
 
-            var player = new Player { Name = request.PlayerName, ConnectionId = request.LobbyId, IsConnected = true };
+            var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
             var joinResult = lobbyService.JoinLobby(player);
-
             if (!joinResult.Success)
                 return BadRequest(joinResult.ErrorMessage);
 
             var lobby = lobbyService.GetLobby(request.LobbyId);
 
-            // Notify all clients in the lobby about the new player
-            await hubContext.Clients.All.SendAsync("PlayerJoined", new
-            {
-                LobbyId = request.LobbyId,
-                PlayerName = request.PlayerName,
-                PlayerCount = lobby.ConnectedPlayers.Count
-            });
+            await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
 
-            // Start game when 4 players join
             if (lobby.ConnectedPlayers.Count == 4)
             {
                 gameService.GameInitializer(lobby);
-                await hubContext.Clients.All.SendAsync("GameStarted", new { LobbyId = request.LobbyId });
+                await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                    .SendAsync("GameStarted", new { request.LobbyId });
             }
 
             return Ok(new
             {
-                joinResult.Success,
-                joinResult.ErrorMessage,
-                request.LobbyId,
-                PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
+                joinResult.Lobby,
+                joinResult.ErrorMessage
             });
         }
 
-        //    [HttpPost("leave")]
-        //    public async Task<IActionResult> Leave([FromBody] LeaveRequest request)
-        //    {
-        //        if (string.IsNullOrWhiteSpace(request.PlayerName))
-        //            return BadRequest("Player name cannot be empty.");
+        [HttpPost("leave")]
+        public async Task<IActionResult> LeaveLobby([FromBody] LeaveRequestModel request)
+        {
+            if (string.IsNullOrWhiteSpace(request.PlayerName))
+                return BadRequest("Player name cannot be empty.");
 
-        //        var player = new Player { Name = request.PlayerName, ConnectionId = request.LobbyId };
-        //        var success = lobbyService.LeaveLobby(player, request.LobbyId);
+            var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
+            var success = lobbyService.LeaveLobby(player, request.LobbyId);
 
-        //        if (success)
-        //        {
-        //            var lobby = lobbyService.GetLobby(request.LobbyId);
-        //            await hubContext.Clients.All.SendAsync("PlayerLeft", new {
-        //                LobbyId = request.LobbyId,
-        //                PlayerName = request.PlayerName,
-        //                PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
-        //            });
-        //        }
+            if (success)
+            {
+                var lobby = lobbyService.GetLobby(request.LobbyId);
+                await hubContext.Clients.All.SendAsync("PlayerLeft", new
+                {
+                    LobbyId = request.LobbyId,
+                    PlayerName = request.PlayerName,
+                    PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
+                });
+                var isHosterHere = lobby.ConnectedPlayers.Any(p => p.Hoster);
+                if (!isHosterHere)
+                {
+                    lobbyService.ResetLobby(lobby.Id);
+                    return Ok(new { Success = success, IsHosterHere = isHosterHere });
+                }
+            }
 
-        //        return Ok(new { Success = success });
-        //    }
+            return Ok(new { Success = success });
+        }
 
-        //    [HttpGet("list")]
-        //    public IActionResult GetAvailableLobbies()
-        //    {
-        //        var lobbies = lobbyService.GetAvailableLobbies();
-        //        return Ok(lobbies);
-        //    }
+        [HttpGet("{lobbyId}")]
+        public IActionResult GetLobbyState(int lobbyId)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if (lobby == null)
+                return NotFound("Lobby not found.");
 
-        //    [HttpGet("{lobbyId}/state")]
-        //    public IActionResult GetLobbyState(int lobbyId)
-        //    {
-        //        var lobby = lobbyService.GetLobby(lobbyId);
-        //        if (lobby == null)
-        //            return NotFound("Lobby not found.");
-
-        //        return Ok(new {
-        //            LobbyId = lobby.Id,
-        //            LobbyName = lobby.Name,
-        //            Players = lobby.ConnectedPlayers.Select(p => p.Name),
-        //            PlayerCount = lobby.ConnectedPlayers.Count,
-        //            GameStarted = lobby.GameStarted
-        //        });
-        //    }
-        //}
-
-        //public class LeaveRequest
-        //{
-        //    public string PlayerName { get; set; } = string.Empty;
-        //    public int LobbyId { get; set; }
-        //}
+            return Ok(new
+            {
+                Lobby = lobby
+            });
+        }
     }
 }
