@@ -36,7 +36,7 @@ namespace BeloteEngine.Api.Hubs
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
             // Keep this lightweight; controllers will broadcast full PlayersUpdated
-            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerConnected", playerName);
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerJoined", playerName);
         }
 
         public async Task LeaveLobby(int lobbyId, string playerName)

@@ -1,4 +1,5 @@
 ﻿using BeloteEngine.Api.Hubs;
+using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeloteEngine.Api.Controllers
@@ -7,17 +8,25 @@ namespace BeloteEngine.Api.Controllers
     [ApiController]
     public class GameController(
         ILogger<GameController> _logger
-        ,BeloteHub _hub
+        , IGameService _gameService
+        , ILobbyService _lobbyService
+        //,BeloteHub _hub
         ) : ControllerBase
     {
         private readonly ILogger<GameController> logger = _logger;
-        private readonly BeloteHub hub = _hub;
+        private readonly IGameService gameService = _gameService;
+        private readonly ILobbyService lobbyService = _lobbyService;
+        //private readonly BeloteHub hub = _hub;
 
         [HttpGet($"start")]
-        public async Task<IActionResult> StartGame(int lobbyId)
+        public IActionResult StartGame([FromRoute] int lobbyId)
         {
-            await hub.OnConnectedAsync();
-            return Ok("Game logic will be implemented here.");
+            var lobby = lobbyService.GetLobby(lobbyId);
+            var game = gameService.InitialPhase(lobby);
+            return Ok(new
+            {
+                Game = game
+            });
         }
     }
 }

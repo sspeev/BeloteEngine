@@ -29,14 +29,10 @@ namespace BeloteEngine.Services.Services
             {
                 throw new ArgumentNullException(nameof(game), "Game cannot be null");
             }
-            if (game.Players == null || game.Players.Length != 2 ||
+            if (game.Players == null || game.Players.Length != 4 ||
                 game.Players.Any(team => team.players == null || team.players.Length != 2))
             {
                 throw new ArgumentException("Invalid teams array in the game");
-            }
-            if (game.Deck == null || game.Deck.Cards == null || game.Deck.Cards.Length == 0)
-            {
-                throw new InvalidOperationException("Deck is not initialized or has no cards");
             }
 
             game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
