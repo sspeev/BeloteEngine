@@ -76,12 +76,12 @@ namespace BeloteEngine.Api.Controllers
             await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
                 .SendAsync("PlayersUpdated", lobby.ConnectedPlayers);
 
-            if (lobby.ConnectedPlayers.Count == 4)
-            {
-                gameService.GameInitializer(lobby);
-                await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
-                    .SendAsync("GameStarted", new { request.LobbyId });
-            }
+            //if (lobby.ConnectedPlayers.Count == 4)
+            //{
+            //    gameService.GameInitializer(lobby);
+            //    await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+            //        .SendAsync("GameStarted", new { request.LobbyId });
+            //}
 
             return Ok(new
             {
