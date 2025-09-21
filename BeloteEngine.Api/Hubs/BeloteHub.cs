@@ -1,13 +1,16 @@
 ﻿using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
 {
     public class BeloteHub(
         ILogger<BeloteHub> _logger
+        , ILobbyService _lobbyService
         ) : Hub
     {
         private readonly ILogger<BeloteHub> logger = _logger;
+        private readonly ILobbyService lobbyService = _lobbyService;
 
         public override async Task OnConnectedAsync()
         {
@@ -32,17 +35,39 @@ namespace BeloteEngine.Api.Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task JoinLobby(int lobbyId, string playerName)
+        //public async Task JoinLobby(int lobbyId, string playerName)
+        //{
+        //    await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
+        //    // Keep this lightweight; controllers will broadcast full PlayersUpdated
+        //    await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerJoined", playerName);
+        //}
+
+        //public async Task LeaveLobby(int lobbyId, string playerName)
+        //{
+        //    await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
+        //    await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerDisconnected", playerName);
+        //}
+
+        public async Task SendLobbyUpdateAsync(int lobbyId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
-            // Keep this lightweight; controllers will broadcast full PlayersUpdated
-            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerJoined", playerName);
+            var lobby = lobbyService.GetLobby(lobbyId);
+
+            if (lobby != null)
+            {
+                await Clients.Group($"Lobby_{lobbyId}").SendAsync("LobbyStateUpdated", lobby);
+            }
         }
 
-        public async Task LeaveLobby(int lobbyId, string playerName)
+        public async Task JoinLobbyGroup(int lobbyId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
+            await SendLobbyUpdateAsync(lobbyId);
+        }
+
+        public async Task LeaveLobbyGroup(int lobbyId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
-            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerDisconnected", playerName);
+            await SendLobbyUpdateAsync(lobbyId);
         }
     }
 }
