@@ -40,7 +40,7 @@ namespace BeloteEngine.Api.Controllers
                 return BadRequest(joinResult.ErrorMessage);
 
             await hubContext.Clients.Group($"Lobby_{lobby.Id}")
-                .SendAsync("PlayerJoined", lobby.ConnectedPlayers);
+                .SendAsync("PlayerJoined", lobby);
 
             return Ok(new
             {
@@ -48,6 +48,7 @@ namespace BeloteEngine.Api.Controllers
                 {
                     lobby.Id,
                     lobby.Name,
+                    lobby.gamePhase,
                     connectedPlayers = lobby.ConnectedPlayers
                 }
             });
@@ -73,18 +74,8 @@ namespace BeloteEngine.Api.Controllers
 
             var lobby = lobbyService.GetLobby(request.LobbyId);
 
-            //await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
-            //    .SendAsync("PlayerJoined", lobby.ConnectedPlayers);
-
-            await _hubContext.Clients.Group($"{request.LobbyId}")
-                .SendAsync("LobbyStateUpdated", lobby);
-
-            //if (lobby.ConnectedPlayers.Count == 4)
-            //{
-            //    gameService.GameInitializer(lobby);
-            //    await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
-            //        .SendAsync("GameStarted", new { request.LobbyId });
-            //}
+            await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                .SendAsync("PlayerJoined", lobby);
 
             return Ok(new
             {
