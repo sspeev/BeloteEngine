@@ -12,7 +12,7 @@ namespace BeloteEngine.Api.Controllers
         ILogger<GameController> _logger
         , IGameService _gameService
         , ILobbyService _lobbyService
-        ,IHubContext<BeloteHub> _hub
+        , IHubContext<BeloteHub> _hub
         ) : ControllerBase
     {
         private readonly ILogger<GameController> logger = _logger;
@@ -24,9 +24,9 @@ namespace BeloteEngine.Api.Controllers
         public async Task<IActionResult> StartGame([FromRoute] int lobbyId)
         {
             var lobby = lobbyService.GetLobby(lobbyId);
-            var game = gameService.GameInitializer(lobby);
-            lobby.Game = game;
+            gameService.GameInitializer(lobby);
             lobby.gamePhase = "playing";
+            gameService.InitialPhase(lobby);
 
             await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("StartGame", lobby);
             return Ok(new

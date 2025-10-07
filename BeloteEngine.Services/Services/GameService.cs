@@ -14,7 +14,7 @@ namespace BeloteEngine.Services.Services
         //private readonly ILobbyService lobbyService = _lobbyService;
         private readonly ILogger<GameService> logger = _logger;
 
-        public Game InitialPhase(Lobby lobby)
+        public void InitialPhase(Lobby lobby)
         {
             if (lobby == null)
             {
@@ -39,7 +39,8 @@ namespace BeloteEngine.Services.Services
             game.CurrentPlayer = PlayerToSplitCards(lobby);
             logger.LogInformation("Current player to split cards: {PlayerName}", game.CurrentPlayer.Name);
 
-            return game;
+            DealCards(lobby, 3);
+            DealCards(lobby, 2);
 
             // обявявания
             //IsAnnounceSet();
@@ -116,7 +117,7 @@ namespace BeloteEngine.Services.Services
                 teams[1].players[1]
             ];
 
-        public Game GameInitializer(Lobby lobby)
+        public void GameInitializer(Lobby lobby)
         {
             Game game = new()
             {
@@ -134,7 +135,6 @@ namespace BeloteEngine.Services.Services
 
             logger.LogInformation("Game initialized with players: {Players}",
                 string.Join(", ", game.Players.SelectMany(team => team.players.Select(player => player.Name))));
-            return game;
         }
 
         private static Team[] SetPlayers(List<Player> connectedPlayers)
@@ -162,14 +162,32 @@ namespace BeloteEngine.Services.Services
             return [team1, team2];
         }
 
-        private static Card[] CardsRandomizer(Card[] cards)
+        private static Stack<Card> CardsRandomizer(Stack<Card> cards)
         {
-            if (cards == null || cards.Length == 0)
+            if (cards == null || cards.Count == 0)
             {
                 throw new ArgumentException("Cards cannot be null or empty");
             }
             Random random = new();
-            return [.. cards.OrderBy(x => random.Next())];
+            var shuffledList = cards.OrderBy(x => random.Next()).ToList();
+            return new Stack<Card>(shuffledList);
+        }
+
+        public void DealCards(Lobby lobby, int count)
+        {
+            var players = AllPlayers(lobby.Game.Players);
+            var deck = lobby.Game.Deck.Cards;
+
+            foreach (var player in players)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    if (deck.TryPop(out var card))
+                    {
+                        player.Hand.Add(card);
+                    }
+                }
+            }
         }
 
         public void SetPlayerAnnounce(Player currPlayer, Announces announce)
@@ -221,7 +239,8 @@ namespace BeloteEngine.Services.Services
             game.CurrentAnnounce = None;
             game.PassCounter = 0;
 
-            return InitialPhase(lobby);
+            InitialPhase(lobby);
+            return game;
         }
 
         public Game NextGame(Lobby lobby)
@@ -231,7 +250,8 @@ namespace BeloteEngine.Services.Services
             game.CurrentAnnounce = None;
             game.PassCounter = 0;
 
-            return InitialPhase(lobby);
+            InitialPhase(lobby);
+            return game;
         }
 
         public Game Creator() => new();
