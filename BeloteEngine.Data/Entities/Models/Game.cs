@@ -20,39 +20,39 @@ namespace BeloteEngine.Data.Entities.Models
             {
                 switch (CurrentAnnounce)
                 {
-                    case Announces.Спатия:
-                        if (card.Suit == "Спатия")
+                    case Announces.Clubs:
+                        if (card.Suit == Suit.Clubs)
                         {
                             if (card.Rank == "9") card.Points = 14;
                             if (card.Rank == "J") card.Points = 20;
                         }
                         break;
-                    case Announces.Каро:
-                        if (card.Suit == "Каро")
+                    case Announces.Diamonds:
+                        if (card.Suit == Suit.Diamonds)
                         {
                             if (card.Rank == "9") card.Points = 14;
                             if (card.Rank == "J") card.Points = 20;
                         }
                         break;
-                    case Announces.Купа:
-                        if (card.Suit == "Купа")
+                    case Announces.Hearths:
+                        if (card.Suit == Suit.Hearts)
                         {
                             if (card.Rank == "9") card.Points = 14;
                             if (card.Rank == "J") card.Points = 20;
                         }
                         break;
-                    case Announces.Пика:
-                        if (card.Suit == "Пика")
+                    case Announces.Spades:
+                        if (card.Suit == Suit.Spades)
                         {
                             if (card.Rank == "9") card.Points = 14;
                             if (card.Rank == "J") card.Points = 20;
                         }
                         break;
-                    case Announces.Без_Коз:
+                    case Announces.Without_Announce:
                         if (card.Rank == "9") card.Points = 0;
                         if (card.Rank == "J") card.Points = 2;
                         break;
-                    case Announces.Всичко_Коз:
+                    case Announces.All_Announce:
                         if (card.Rank == "9") card.Points = 14;
                         if (card.Rank == "J") card.Points = 20;
                         break;

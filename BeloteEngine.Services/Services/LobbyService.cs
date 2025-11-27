@@ -200,7 +200,9 @@ namespace BeloteEngine.Services.Services
                     Name = l.Name,
                     PlayerCount = NonNullCount(l.ConnectedPlayers),
                     IsFull = NonNullCount(l.ConnectedPlayers) >= 4,
-                    GameStarted = l.GameStarted
+                    GameStarted = l.GameStarted,
+                    GamePhase = l.gamePhase
+                    
                 })];
         }
     }

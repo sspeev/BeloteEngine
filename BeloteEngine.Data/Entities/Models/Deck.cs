@@ -1,4 +1,6 @@
-﻿namespace BeloteEngine.Data.Entities.Models
+﻿using BeloteEngine.Data.Entities.Enums;
+
+namespace BeloteEngine.Data.Entities.Models
 {
     public class Deck
     {
@@ -6,7 +8,7 @@
 
         public Deck()
         {
-            var suits = new List<string> { "Спатия", "Каро", "Купа", "Пика" };
+            var suits = new List<Suit> { Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades };
             var ranks = new List<(string Rank, int Points)>
             {
                 ("7", 0),

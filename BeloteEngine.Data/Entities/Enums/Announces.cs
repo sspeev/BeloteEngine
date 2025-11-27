@@ -3,12 +3,12 @@
     public enum Announces
     {
         None = 0,
-        Пас = 1,
-        Спатия = 2,
-        Каро = 3,
-        Купа = 4,
-        Пика = 5,
-        Без_Коз = 6,
-        Всичко_Коз = 7
+        Pass = 1,
+        Clubs = 2,
+        Diamonds = 3,
+        Hearths = 4,
+        Spades = 5,
+        Without_Announce = 6,
+        All_Announce = 7
     }
 }

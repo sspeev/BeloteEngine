@@ -24,20 +24,19 @@ namespace BeloteEngine.Services.Services
             {
                 throw new InvalidOperationException("Game is not initialized in the lobby");
             }
-            var game = lobby.Game;
-            if (game == null)
+            if (lobby.Game == null)
             {
-                throw new ArgumentNullException(nameof(game), "Game cannot be null");
+                throw new ArgumentNullException(nameof(lobby.Game), "Game cannot be null");
             }
-            if (game.Players == null || game.Players.Length != 4 ||
-                game.Players.Any(team => team.players == null || team.players.Length != 2))
+            if (lobby.Game.Players == null || lobby.Game.Players.Any(team => 
+            team.players == null || team.players.Length != 2))
             {
                 throw new ArgumentException("Invalid teams array in the game");
             }
 
-            game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
-            game.CurrentPlayer = PlayerToSplitCards(lobby);
-            logger.LogInformation("Current player to split cards: {PlayerName}", game.CurrentPlayer.Name);
+            lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
+            lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby);
+            logger.LogInformation("Current player to split cards: {PlayerName}", lobby.Game.CurrentPlayer.Name);
 
             DealCards(lobby, 3);
             DealCards(lobby, 2);
@@ -170,7 +169,10 @@ namespace BeloteEngine.Services.Services
             }
             Random random = new();
             var shuffledList = cards.OrderBy(x => random.Next()).ToList();
-            return new Stack<Card>(shuffledList);
+            var firstHalf = shuffledList.Take(16).ToList();
+            var secondHalf = shuffledList.Skip(16).Take(16).ToList();
+
+            return new Stack<Card>(firstHalf.Concat(secondHalf));
         }
 
         public void DealCards(Lobby lobby, int count)
@@ -201,7 +203,7 @@ namespace BeloteEngine.Services.Services
             {
                 throw new ArgumentNullException("Current player has not announced yet!");
             }
-            if(currPlayer.AnnounceOffer != Пас)
+            if(currPlayer.AnnounceOffer != Pass)
             {
                 if(lobby.Game.CurrentAnnounce < currPlayer.AnnounceOffer)
                 {
