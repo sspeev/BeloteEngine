@@ -6,7 +6,7 @@
         Pass = 1,
         Clubs = 2,
         Diamonds = 3,
-        Hearths = 4,
+        Hearts = 4,
         Spades = 5,
         Without_Announce = 6,
         All_Announce = 7

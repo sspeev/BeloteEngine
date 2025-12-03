@@ -4,15 +4,9 @@ namespace BeloteEngine.Data.Entities.Models
 {
     public class Game
     {
-        public Game()
-        {
-            Players = new Team[2];
-            Deck = new Deck();
-        }
+        public Team[] Players { get; init; } = new Team[2];
 
-        public Team[] Players { get; set; }
-
-        public Deck Deck { get; set; }
+        public Deck Deck { get; set; } = new();
 
         public void SetPointsOnCards()
         {
@@ -23,39 +17,65 @@ namespace BeloteEngine.Data.Entities.Models
                     case Announces.Clubs:
                         if (card.Suit == Suit.Clubs)
                         {
-                            if (card.Rank == "9") card.Points = 14;
-                            if (card.Rank == "J") card.Points = 20;
+                            card.Points = card.Rank switch
+                            {
+                                "9" => 14,
+                                "J" => 20,
+                                _ => card.Points
+                            };
                         }
                         break;
                     case Announces.Diamonds:
                         if (card.Suit == Suit.Diamonds)
                         {
-                            if (card.Rank == "9") card.Points = 14;
-                            if (card.Rank == "J") card.Points = 20;
+                            card.Points = card.Rank switch
+                            {
+                                "9" => 14,
+                                "J" => 20,
+                                _ => card.Points
+                            };
                         }
                         break;
-                    case Announces.Hearths:
+                    case Announces.Hearts:
                         if (card.Suit == Suit.Hearts)
                         {
-                            if (card.Rank == "9") card.Points = 14;
-                            if (card.Rank == "J") card.Points = 20;
+                            card.Points = card.Rank switch
+                            {
+                                "9" => 14,
+                                "J" => 20,
+                                _ => card.Points
+                            };
                         }
                         break;
                     case Announces.Spades:
                         if (card.Suit == Suit.Spades)
                         {
-                            if (card.Rank == "9") card.Points = 14;
-                            if (card.Rank == "J") card.Points = 20;
+                            card.Points = card.Rank switch
+                            {
+                                "9" => 14,
+                                "J" => 20,
+                                _ => card.Points
+                            };
                         }
                         break;
                     case Announces.Without_Announce:
-                        if (card.Rank == "9") card.Points = 0;
-                        if (card.Rank == "J") card.Points = 2;
+                        card.Points = card.Rank switch
+                        {
+                            "9" => 0,
+                            "J" => 2,
+                            _ => card.Points
+                        };
                         break;
                     case Announces.All_Announce:
-                        if (card.Rank == "9") card.Points = 14;
-                        if (card.Rank == "J") card.Points = 20;
+                        card.Points = card.Rank switch
+                        {
+                            "9" => 14,
+                            "J" => 20,
+                            _ => card.Points
+                        };
                         break;
+                    case Announces.None:
+                    case Announces.Pass:
                     default:
                         break;
                 }
@@ -67,6 +87,6 @@ namespace BeloteEngine.Data.Entities.Models
 
         public Player CurrentPlayer { get; set; } = null!;
 
-        public int PassCounter { get; set; } = 0;
+        public int PassCounter { get; set; }
     }
 }

@@ -151,7 +151,7 @@ namespace BeloteEngine.Api.Controllers
                     Id = lobby.Id,
                     Name = lobby.Name,
                     ConnectedPlayers = lobby.ConnectedPlayers.ToArray(),
-                    GamePhase = lobby.gamePhase,
+                    GamePhase = lobby.GamePhase,
                     GameStarted = lobby.GameStarted,
                     PlayerCount = lobby.ConnectedPlayers.Count
                 }

@@ -9,6 +9,6 @@
         public bool GameStarted { get; set; } = false;
         public Game Game { get; set; } = null!;
 
-        public string gamePhase { get; set; } = "waiting";
+        public string GamePhase { get; set; } = "waiting";
     }
 }
