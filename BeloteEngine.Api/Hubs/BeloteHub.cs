@@ -1,13 +1,16 @@
 ﻿using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
 {
     public class BeloteHub(
         ILogger<BeloteHub> _logger
+        , ILobbyService _lobbyService
         ) : Hub
     {
         private readonly ILogger<BeloteHub> logger = _logger;
+        private readonly ILobbyService lobbyService = _lobbyService;
 
         public override async Task OnConnectedAsync()
         {
@@ -36,13 +39,24 @@ namespace BeloteEngine.Api.Hubs
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
             // Keep this lightweight; controllers will broadcast full PlayersUpdated
-            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerConnected", playerName);
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerJoined", playerName);
         }
 
         public async Task LeaveLobby(int lobbyId, string playerName)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
-            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerDisconnected", playerName);
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerLeft", playerName);
+        }
+
+        public async Task StartGame(int lobbyId)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if (lobby == null)
+            {
+                logger.LogWarning("StartGame called for non-existent lobby {LobbyId}", lobbyId);
+                return;
+            }
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("StartGame", lobby);
         }
     }
 }

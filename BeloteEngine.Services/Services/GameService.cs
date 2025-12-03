@@ -14,7 +14,7 @@ namespace BeloteEngine.Services.Services
         //private readonly ILobbyService lobbyService = _lobbyService;
         private readonly ILogger<GameService> logger = _logger;
 
-        public Game InitialPhase(Lobby lobby)
+        public void InitialPhase(Lobby lobby)
         {
             if (lobby == null)
             {
@@ -24,26 +24,22 @@ namespace BeloteEngine.Services.Services
             {
                 throw new InvalidOperationException("Game is not initialized in the lobby");
             }
-            var game = lobby.Game;
-            if (game == null)
+            if (lobby.Game == null)
             {
-                throw new ArgumentNullException(nameof(game), "Game cannot be null");
+                throw new ArgumentNullException(nameof(lobby.Game), "Game cannot be null");
             }
-            if (game.Players == null || game.Players.Length != 2 ||
-                game.Players.Any(team => team.players == null || team.players.Length != 2))
+            if (lobby.Game.Players == null || lobby.Game.Players.Any(team => 
+            team.players == null || team.players.Length != 2))
             {
                 throw new ArgumentException("Invalid teams array in the game");
             }
-            if (game.Deck == null || game.Deck.Cards == null || game.Deck.Cards.Length == 0)
-            {
-                throw new InvalidOperationException("Deck is not initialized or has no cards");
-            }
 
-            game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
-            game.CurrentPlayer = PlayerToSplitCards(lobby);
-            logger.LogInformation("Current player to split cards: {PlayerName}", game.CurrentPlayer.Name);
+            lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
+            lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby);
+            logger.LogInformation("Current player to split cards: {PlayerName}", lobby.Game.CurrentPlayer.Name);
 
-            return game;
+            DealCards(lobby, 3);
+            DealCards(lobby, 2);
 
             // обявявания
             //IsAnnounceSet();
@@ -120,7 +116,7 @@ namespace BeloteEngine.Services.Services
                 teams[1].players[1]
             ];
 
-        public Game GameInitializer(Lobby lobby)
+        public void GameInitializer(Lobby lobby)
         {
             Game game = new()
             {
@@ -138,7 +134,6 @@ namespace BeloteEngine.Services.Services
 
             logger.LogInformation("Game initialized with players: {Players}",
                 string.Join(", ", game.Players.SelectMany(team => team.players.Select(player => player.Name))));
-            return game;
         }
 
         private static Team[] SetPlayers(List<Player> connectedPlayers)
@@ -166,14 +161,35 @@ namespace BeloteEngine.Services.Services
             return [team1, team2];
         }
 
-        private static Card[] CardsRandomizer(Card[] cards)
+        private static Stack<Card> CardsRandomizer(Stack<Card> cards)
         {
-            if (cards == null || cards.Length == 0)
+            if (cards == null || cards.Count == 0)
             {
                 throw new ArgumentException("Cards cannot be null or empty");
             }
             Random random = new();
-            return [.. cards.OrderBy(x => random.Next())];
+            var shuffledList = cards.OrderBy(x => random.Next()).ToList();
+            var firstHalf = shuffledList.Take(16).ToList();
+            var secondHalf = shuffledList.Skip(16).Take(16).ToList();
+
+            return new Stack<Card>(firstHalf.Concat(secondHalf));
+        }
+
+        public void DealCards(Lobby lobby, int count)
+        {
+            var players = AllPlayers(lobby.Game.Players);
+            var deck = lobby.Game.Deck.Cards;
+
+            foreach (var player in players)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    if (deck.TryPop(out var card))
+                    {
+                        player.Hand.Add(card);
+                    }
+                }
+            }
         }
 
         public void SetPlayerAnnounce(Player currPlayer, Announces announce)
@@ -187,7 +203,7 @@ namespace BeloteEngine.Services.Services
             {
                 throw new ArgumentNullException("Current player has not announced yet!");
             }
-            if(currPlayer.AnnounceOffer != Пас)
+            if(currPlayer.AnnounceOffer != Pass)
             {
                 if(lobby.Game.CurrentAnnounce < currPlayer.AnnounceOffer)
                 {
@@ -225,7 +241,8 @@ namespace BeloteEngine.Services.Services
             game.CurrentAnnounce = None;
             game.PassCounter = 0;
 
-            return InitialPhase(lobby);
+            InitialPhase(lobby);
+            return game;
         }
 
         public Game NextGame(Lobby lobby)
@@ -235,7 +252,8 @@ namespace BeloteEngine.Services.Services
             game.CurrentAnnounce = None;
             game.PassCounter = 0;
 
-            return InitialPhase(lobby);
+            InitialPhase(lobby);
+            return game;
         }
 
         public Game Creator() => new();

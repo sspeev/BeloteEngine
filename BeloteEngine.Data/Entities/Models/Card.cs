@@ -1,16 +1,11 @@
-﻿namespace BeloteEngine.Data.Entities.Models
-{
-    public class Card
-    {
-        public string Suit { get; set; }
-        public string Rank { get; set; }
-        public int Points { get; set; }
+﻿using BeloteEngine.Data.Entities.Enums;
 
-        public Card(string suit, string rank, int points)
-        {
-            Suit = suit;
-            Rank = rank;
-            Points = points;
-        }
+namespace BeloteEngine.Data.Entities.Models
+{
+    public class Card(Suit suit, string rank, int points)
+    {
+        public Suit Suit { get; set; } = suit;
+        public string Rank { get; set; } = rank;
+        public int Points { get; set; } = points;
     }
 }

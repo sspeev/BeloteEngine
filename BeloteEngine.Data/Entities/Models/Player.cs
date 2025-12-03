@@ -5,7 +5,7 @@ namespace BeloteEngine.Data.Entities.Models
     public class Player
     {
         //public int Id { get; set; }
-        public Player() => Cards = [];
+        public Player() => Hand = [];
         public int? LobbyId { get; set; }
 
         public required string Name { get; set; }
@@ -22,7 +22,7 @@ namespace BeloteEngine.Data.Entities.Models
         public bool IsStarter { get; set; } = false;
         public Announces AnnounceOffer { get; set; } = 0;
 
-        public Dictionary<string, Dictionary<string, int>> Cards { get; set; }
+        public List<Card> Hand { get; set; }
 
         //public int Combinations { get; set; }
     }

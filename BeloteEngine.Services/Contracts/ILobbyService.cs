@@ -22,5 +22,6 @@ namespace BeloteEngine.Services.Contracts
         public int PlayerCount { get; set; }
         public bool IsFull { get; set; }
         public bool GameStarted { get; set; }
+        public string GamePhase { get; set; } = string.Empty;
     }
 }
