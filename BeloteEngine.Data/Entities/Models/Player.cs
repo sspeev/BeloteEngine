@@ -4,25 +4,23 @@ namespace BeloteEngine.Data.Entities.Models
 {
     public class Player
     {
-        //public int Id { get; set; }
-        public Player() => Hand = [];
         public int? LobbyId { get; set; }
 
-        public required string Name { get; set; }
+        public required string Name { get; init; }
 
-        public bool Hoster { get; set; }
+        public bool Hoster { get; init; }
 
         public Status Status { get; set; } = Status.Disconnected;
 
-        public bool LastSplitter { get; set; } = false;
+        public bool LastSplitter { get; set; }
 
         /// <summary>
-        /// True if the player will play card first after the cards are dealt.
+        /// True if the player plays card first after the cards are dealt.
         /// </summary>
-        public bool IsStarter { get; set; } = false;
+        public bool IsStarter { get; set; }
         public Announces AnnounceOffer { get; set; } = 0;
 
-        public List<Card> Hand { get; set; }
+        public List<Card> Hand { get; set; } = [];
 
         //public int Combinations { get; set; }
     }

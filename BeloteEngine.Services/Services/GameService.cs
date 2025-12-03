@@ -7,13 +7,9 @@ using static BeloteEngine.Data.Entities.Enums.Announces;
 namespace BeloteEngine.Services.Services
 {
     public class GameService(
-        //ILobbyService _lobbyService
-         ILogger<GameService> _logger)
+         ILogger<GameService> logger)
         : IGameService
     {
-        //private readonly ILobbyService lobbyService = _lobbyService;
-        private readonly ILogger<GameService> logger = _logger;
-
         public void InitialPhase(Lobby lobby)
         {
             if (lobby == null)
@@ -29,7 +25,7 @@ namespace BeloteEngine.Services.Services
                 throw new ArgumentNullException(nameof(lobby.Game), "Game cannot be null");
             }
             if (lobby.Game.Players == null || lobby.Game.Players.Any(team => 
-            team.players == null || team.players.Length != 2))
+            team.Players.Length != 2))
             {
                 throw new ArgumentException("Invalid teams array in the game");
             }
@@ -41,7 +37,7 @@ namespace BeloteEngine.Services.Services
             DealCards(lobby, 3);
             DealCards(lobby, 2);
 
-            // обявявания
+            // announcements
             //IsAnnounceSet();
             //StartSecondPart();
         }
@@ -54,21 +50,19 @@ namespace BeloteEngine.Services.Services
         public Player PlayerToSplitCards(Lobby lobby)
         {
             var teams = lobby.Game.Players;
-            if (teams == null || teams.Length != 2 || teams.Any(team => team.players == null || team.players.Length != 2))
+            if (teams is not { Length: 2 } || teams.Any(team => team.Players.Length != 2))
             {
                 throw new ArgumentException("Invalid teams array");
             }
 
             for (int i = 0; i < teams.Length; i++)
             {
-                for (int j = 0; j < teams[i].players.Length; j++)
+                for (int j = 0; j < teams[i].Players.Length; j++)
                 {
-                    if (teams[i].players[j].LastSplitter)
-                    {
-                        teams[i].players[j].LastSplitter = false;
-                        teams[(i + 1) % 2].players[j].LastSplitter = true;
-                        return teams[(i + 1) % 2].players[j];
-                    }
+                    if (!teams[i].Players[j].LastSplitter) continue;
+                    teams[i].Players[j].LastSplitter = false;
+                    teams[(i + 1) % 2].Players[j].LastSplitter = true;
+                    return teams[(i + 1) % 2].Players[j];
                 }
             }
             throw new InvalidOperationException("No player found who has split cards last.");
@@ -102,18 +96,14 @@ namespace BeloteEngine.Services.Services
 
         public bool IsGameOver(int team1Score, int team2Score)
         {
-            if (team1Score >= 151 || team2Score >= 151)
-            {
-                return true;
-            }
-            return false;
+            return team1Score >= 151 || team2Score >= 151;
         }
 
         private static Player[] AllPlayers(Team[] teams) => [
-                teams[0].players[0],
-                teams[1].players[0],
-                teams[0].players[1],
-                teams[1].players[1]
+                teams[0].Players[0],
+                teams[1].Players[0],
+                teams[0].Players[1],
+                teams[1].Players[1]
             ];
 
         public void GameInitializer(Lobby lobby)
@@ -125,7 +115,7 @@ namespace BeloteEngine.Services.Services
             int teamRandomResult = new Random().Next(0, 2); // 0 or 1
             int playerRandomResult = new Random().Next(0, 2); // 0 or 1
 
-            game.Players[teamRandomResult].players[playerRandomResult].LastSplitter = true;
+            game.Players[teamRandomResult].Players[playerRandomResult].LastSplitter = true;
             game.Deck = new Deck();
             
             // Assign the game to the lobby
@@ -133,14 +123,14 @@ namespace BeloteEngine.Services.Services
             lobby.GameStarted = true;
 
             logger.LogInformation("Game initialized with players: {Players}",
-                string.Join(", ", game.Players.SelectMany(team => team.players.Select(player => player.Name))));
+                string.Join(", ", game.Players.SelectMany(team => team.Players.Select(player => player.Name))));
         }
 
         private static Team[] SetPlayers(List<Player> connectedPlayers)
         {
             Team team1 = new()
             {
-                players =
+                Players =
                 [
                     connectedPlayers[0],
                     connectedPlayers[2]
@@ -150,7 +140,7 @@ namespace BeloteEngine.Services.Services
 
             Team team2 = new()
             {
-                players =
+                Players =
                 [
                     connectedPlayers[1],
                     connectedPlayers[3]
@@ -168,7 +158,7 @@ namespace BeloteEngine.Services.Services
                 throw new ArgumentException("Cards cannot be null or empty");
             }
             Random random = new();
-            var shuffledList = cards.OrderBy(x => random.Next()).ToList();
+            var shuffledList = cards.OrderBy(_ => random.Next()).ToList();
             var firstHalf = shuffledList.Take(16).ToList();
             var secondHalf = shuffledList.Skip(16).Take(16).ToList();
 
@@ -201,7 +191,7 @@ namespace BeloteEngine.Services.Services
         {
             if (currPlayer.AnnounceOffer == None)
             {
-                throw new ArgumentNullException("Current player has not announced yet!");
+                throw new ArgumentNullException(nameof(lobby));
             }
             if(currPlayer.AnnounceOffer != Pass)
             {

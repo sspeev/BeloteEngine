@@ -58,7 +58,7 @@ namespace BeloteEngine.Data.Entities.Models
                             };
                         }
                         break;
-                    case Announces.Without_Announce:
+                    case Announces.WithoutAnnounce:
                         card.Points = card.Rank switch
                         {
                             "9" => 0,
@@ -66,7 +66,7 @@ namespace BeloteEngine.Data.Entities.Models
                             _ => card.Points
                         };
                         break;
-                    case Announces.All_Announce:
+                    case Announces.AllAnnounce:
                         card.Points = card.Rank switch
                         {
                             "9" => 14,

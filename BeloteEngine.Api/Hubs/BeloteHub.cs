@@ -1,17 +1,13 @@
 ﻿using BeloteEngine.Services.Contracts;
-using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
 {
     public class BeloteHub(
-        ILogger<BeloteHub> _logger
-        , ILobbyService _lobbyService
+        ILogger<BeloteHub> logger
+        , ILobbyService lobbyService
         ) : Hub
     {
-        private readonly ILogger<BeloteHub> logger = _logger;
-        private readonly ILobbyService lobbyService = _lobbyService;
-
         public override async Task OnConnectedAsync()
         {
             logger.LogInformation("Player connected: {ConnectionId}", Context.ConnectionId);
@@ -51,11 +47,6 @@ namespace BeloteEngine.Api.Hubs
         public async Task StartGame(int lobbyId)
         {
             var lobby = lobbyService.GetLobby(lobbyId);
-            if (lobby == null)
-            {
-                logger.LogWarning("StartGame called for non-existent lobby {LobbyId}", lobbyId);
-                return;
-            }
             await Clients.Group($"Lobby_{lobbyId}").SendAsync("StartGame", lobby);
         }
     }

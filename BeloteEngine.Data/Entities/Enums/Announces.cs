@@ -8,7 +8,7 @@
         Diamonds = 3,
         Hearts = 4,
         Spades = 5,
-        Without_Announce = 6,
-        All_Announce = 7
+        WithoutAnnounce = 6,
+        AllAnnounce = 7
     }
 }
