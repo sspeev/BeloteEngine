@@ -25,7 +25,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.0'  # Match the version in your Dockerfile
+          dotnet-version: '8.0'  # Match the version in your Dockerfile
       
       # Step 3: Restore dependencies (like npm install but for .NET)
       - name: Restore dependencies
