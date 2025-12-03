@@ -20,7 +20,7 @@ namespace BeloteEngine.Api.Controllers
         private readonly ILobbyService lobbyService = _lobbyService;
         private readonly IHubContext<BeloteHub> hub = _hub;
 
-        [HttpGet($"start")]
+        [HttpPost($"start")]
         public async Task<IActionResult> StartGame([FromRoute] int lobbyId)
         {
             var lobby = lobbyService.GetLobby(lobbyId);

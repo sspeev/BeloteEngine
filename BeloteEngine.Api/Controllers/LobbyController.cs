@@ -89,35 +89,53 @@ namespace BeloteEngine.Api.Controllers
             if (string.IsNullOrWhiteSpace(request.PlayerName))
                 return BadRequest("Player name cannot be empty.");
 
-            var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
-            var success = lobbyService.LeaveLobby(player, request.LobbyId);
+            var player = new Player { Name = request.PlayerName, LobbyId = request. LobbyId };
+    
+            // Check if the leaving player is the host BEFORE removing them
+            var lobbyBeforeLeave = lobbyService.GetLobby(request.LobbyId);
+            // if (lobbyBeforeLeave == null)
+            //     return NotFound("Lobby not found.");
+        
+            var isLeavingPlayerHost = lobbyBeforeLeave. ConnectedPlayers.Any(p => 
+                p != null && 
+                p.Name == request.PlayerName && 
+                p.Hoster);
+    
+            var success = lobbyService.LeaveLobby(player, request. LobbyId);
 
-            if (!success) return Ok(new { Success = success });
-
-            var lobby = lobbyService.GetLobby(request.LobbyId);
-            await hubContext.Clients.All.SendAsync("PlayerLeft", new
+            if (success)
             {
-                LobbyId = request.LobbyId,
-                PlayerName = request.PlayerName,
-                PlayerCount = lobby?.ConnectedPlayers.Count ?? 0
-            });
-            
-            if (lobby == null)
-            {
-                return Ok(new
+                var lobby = lobbyService.GetLobby(request. LobbyId);
+        
+                // If the host left and lobby is now empty or should be closed
+                if (isLeavingPlayerHost && (lobby == null || lobby.ConnectedPlayers.Count == 0))
                 {
-                    ResInfo = "Host left. Lobby removed!",
-                    IsHostHere = false
-                });
+                    // Notify all clients that the lobby is closing
+                    await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                        .SendAsync("LobbyDeleted", new
+                        {
+                            LobbyId = request.LobbyId,
+                            Reason = "Host left the lobby"
+                        });
+            
+                    if (lobby != null)
+                    {
+                        lobbyService.ResetLobby(lobby.Id);
+                    }
+            
+                    return Ok(new { Success = success, LobbyDeleted = true });
+                }
+        
+                // Normal case: player left but lobby continues
+                if (lobby != null)
+                {
+                    // Send the complete lobby object with updated ConnectedPlayers
+                    await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
+                        .SendAsync("PlayerLeft", lobby);
+                }
             }
-            return Ok(new LobbyResponse { ResInfo = "OK", IsHostHere = true});
 
-            // lobbyService.ResetLobby(lobby.Id);
-            // return Ok(new LobbyResponse
-            // {
-            //     ResInfo = "Host left. Lobby removed!",
-            //     IsHostHere = false
-            // });
+            return Ok(new { Success = success, LobbyDeleted = false });
         }
 
         [HttpGet("{lobbyId}")]

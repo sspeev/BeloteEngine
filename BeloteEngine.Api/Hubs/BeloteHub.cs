@@ -45,7 +45,7 @@ namespace BeloteEngine.Api.Hubs
         public async Task LeaveLobby(int lobbyId, string playerName)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
-            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerDisconnected", playerName);
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("PlayerLeft", playerName);
         }
 
         public async Task StartGame(int lobbyId)
