@@ -51,7 +51,7 @@ jobs:
       # Build production Docker image
       - name: Build production Docker image
         run: |
-          docker build -f src/BeloteEngine.Api/Dockerfile -t belote-backend:latest .
+          docker build -f src/BeloteEngine.Api/Dockerfile -t belote-backend:prod .
       
       # Verify the image was built
       - name: Verify Docker image
@@ -60,7 +60,7 @@ jobs:
       # Test that the container starts successfully
       - name: Test container startup
         run: |
-          docker run -d --name test-container -p 8081:8081 belote-backend:latest
+          docker run -d --name test-container -p 8081:8081 belote-backend:test
           sleep 10
           docker ps | grep test-container
           docker logs test-container
@@ -79,15 +79,15 @@ jobs:
       # Build development Docker image
       - name: Build development Docker image
         run: |
-          docker build -f src/BeloteEngine.Api/DockerfileDev -t belote-backend: dev .
+          docker build -f src/BeloteEngine.Api/DockerfileDev -t belote-backend:dev .
       
       # Test with docker-compose
       - name: Test with Docker Compose (Development)
         run: |
-          docker-compose -f docker-compose.dev.yml up -d
+          docker-compose -f docker-compose.yml up -d
           sleep 15
-          docker-compose -f docker-compose.dev.yml ps
-          docker-compose -f docker-compose.dev.yml logs backend
+          docker-compose -f docker-compose.yml ps
+          docker-compose -f docker-compose.yml logs backend
       
       # Check if backend is responding (optional - add health endpoint first)
       # - name: Health check

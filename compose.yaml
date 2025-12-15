@@ -3,6 +3,7 @@
     build:
       context: .
       dockerfile: src/BeloteEngine.Api/DockerfileDev
+    image: beloteengine:dev
     container_name: BeloteEngine-dev
     ports:
       - "8081:8081"
@@ -16,8 +17,9 @@
   prod:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/BeloteEngine.Api/Dockerfile
     container_name: BeloteEngine-prod
+    image: beloteengine:prod
     ports:
       - "8081:8081"
     environment:
