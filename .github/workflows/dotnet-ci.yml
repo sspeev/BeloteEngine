@@ -55,7 +55,7 @@ jobs:
       
       # Verify the image was built
       - name: Verify Docker image
-        run: docker images | grep belote-backend
+        run: docker images | grep beloteengine-prod
       
       # Test that the container starts successfully
       - name: Test container startup
