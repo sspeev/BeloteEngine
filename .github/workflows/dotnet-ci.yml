@@ -84,10 +84,10 @@ jobs:
       # Test with docker-compose
       - name: Test with Docker Compose (Development)
         run: |
-          docker compose -f docker-compose.yml up -d
+          docker compose -f compose.yaml up -d
           sleep 15
-          docker compose -f docker-compose.yml ps
-          docker compose -f docker-compose.yml logs backend
+          docker compose -f compose.yaml ps
+          docker compose -f compose.yaml logs backend
       
       # Check if backend is responding (optional - add health endpoint first)
       # - name: Health check
@@ -98,5 +98,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          docker compose -f docker-compose.yml down
+          docker compose -f compose.yaml down
           docker system prune -f
