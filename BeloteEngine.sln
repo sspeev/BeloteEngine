@@ -15,6 +15,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Services", "sr
 		{24CF43A6-9F78-40CA-BE27-DB0EC00D7020} = {24CF43A6-9F78-40CA-BE27-DB0EC00D7020}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3A60AC33-BEDE-48F7-8E63-042D5E6AB8A3}"
+	ProjectSection(SolutionItems) = preProject
+		compose.yaml = compose.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

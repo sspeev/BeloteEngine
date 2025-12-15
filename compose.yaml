@@ -1,0 +1,28 @@
+﻿services:
+  dev:
+    build:
+      context: .
+      dockerfile: src/BeloteEngine.Api/DockerfileDev
+    container_name: BeloteEngine-dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./:/src
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: unless-stopped
+    networks:
+      - belote-network
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: BeloteEngine-prod
+    ports:
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+networks:
+  belote-network:
+    driver:  bridge
+    

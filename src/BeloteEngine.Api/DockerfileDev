@@ -1,0 +1,22 @@
+﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS development
+
+WORKDIR /app
+
+# Copy project files for restore
+COPY ["src/BeloteEngine.Api/BeloteEngine.Api.csproj", "src/BeloteEngine.Api/"]
+COPY ["src/BeloteEngine.Services/BeloteEngine.Services.csproj", "src/BeloteEngine.Services/"]
+COPY ["src/BeloteEngine.Data/BeloteEngine.Data.csproj", "src/BeloteEngine.Data/"]
+
+# Restore dependencies
+RUN dotnet restore "src/BeloteEngine.Api/BeloteEngine.Api.csproj"
+
+# Copy everything else
+COPY . . 
+
+WORKDIR /app/src/BeloteEngine.Api
+
+# Expose ports
+EXPOSE 8081
+
+# Use dotnet watch for hot reload
+ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:8081"]

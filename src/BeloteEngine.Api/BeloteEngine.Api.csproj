@@ -24,9 +24,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BeloteEngine.Services\BeloteEngine.Services.csproj" />
-    <ProjectReference Include="..\..\BeloteEngineFE\beloteenginefe.esproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 
 </Project>
