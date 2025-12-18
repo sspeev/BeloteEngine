@@ -5,16 +5,16 @@ namespace BeloteEngine.Services.Contracts
 {
     public interface IGameService
     {
-        void GameInitializer(Lobby lobby);
-        void InitialPhase(Lobby lobby);
-        Game Gameplay(Lobby lobby);
-        Player PlayerToSplitCards(Lobby lobby);
-        Player PlayerToDealCards(Lobby lobby);
-        Player PlayerToStartAnnounce(Lobby lobby);
-        bool IsGameOver(int team1Score, int team2Score);
-        void DealCards(Lobby lobby, int count);
-        void SetPlayerAnnounce(Player currPlayer, Announces announce);
-        Player NextPlayerToAnnounce(Lobby lobby, Player currPlayer);
+        public void GameInitializer(Lobby lobby);
+        public void InitialPhase(Lobby lobby);
+        public Game Gameplay(Lobby lobby);
+        public Player PlayerToSplitCards(Queue<Player> players);
+        public Player PlayerToDealCards(Queue<Player> players);
+        public Player PlayerToStartAnnounceAndPlay(Queue<Player> players);
+        public Player GetNextPlayer(Queue<Player> players);
+        public bool IsGameOver(int team1Score, int team2Score);
+        //public void DealCards(Lobby lobby, int count);
+        public Player NextPlayerToAnnounce(Game game);
         Game GameReset(Lobby lobby);
         Game NextGame(Lobby lobby);
         Game Creator();

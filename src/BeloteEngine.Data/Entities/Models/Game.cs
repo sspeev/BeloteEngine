@@ -1,11 +1,13 @@
 ﻿using BeloteEngine.Data.Entities.Enums;
+using BeloteEngine.Data.Entities.Models;
 
 namespace BeloteEngine.Data.Entities.Models
 {
     public class Game
     {
-        public Team[] Players { get; init; } = new Team[2];
+        public Team[] Teams { get; init; } = new Team[2];
 
+        public Queue<Player> SortedPlayers { get; set; } = new();
         public Deck Deck { get; set; } = new();
 
         public void SetPointsOnCards()
