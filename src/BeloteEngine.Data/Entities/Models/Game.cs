@@ -19,61 +19,109 @@ namespace BeloteEngine.Data.Entities.Models
                     case Announces.Clubs:
                         if (card.Suit == Suit.Clubs)
                         {
-                            card.Points = card.Rank switch
+                            card.Value = card.Rank switch
                             {
                                 "9" => 14,
                                 "J" => 20,
-                                _ => card.Points
+                                _ => card.Value
                             };
                         }
                         break;
                     case Announces.Diamonds:
                         if (card.Suit == Suit.Diamonds)
                         {
-                            card.Points = card.Rank switch
+                            card.Value = card.Rank switch
                             {
                                 "9" => 14,
                                 "J" => 20,
-                                _ => card.Points
+                                _ => card.Value
                             };
                         }
                         break;
                     case Announces.Hearts:
                         if (card.Suit == Suit.Hearts)
                         {
-                            card.Points = card.Rank switch
+                            card.Value = card.Rank switch
                             {
                                 "9" => 14,
                                 "J" => 20,
-                                _ => card.Points
+                                _ => card.Value
+                            };
+                            card.Power = card.Rank switch
+                            {
+                                "J" => 8,
+                                "9" => 7,
+                                "A" => 6,
+                                "10" => 5,
+                                "K" => 4,
+                                "Q" => 3,
+                                "8" => 2,
+                                "7" => 1,
+                                _ => card.Power
                             };
                         }
                         break;
                     case Announces.Spades:
                         if (card.Suit == Suit.Spades)
                         {
-                            card.Points = card.Rank switch
+                            card.Value = card.Rank switch
                             {
                                 "9" => 14,
                                 "J" => 20,
-                                _ => card.Points
+                                _ => card.Value
+                            };
+                            card.Power = card.Rank switch
+                            {
+                                "J" => 8,
+                                "9" => 7,
+                                "A" => 6,
+                                "10" => 5,
+                                "K" => 4,
+                                "Q" => 3,
+                                "8" => 2,
+                                "7" => 1,
+                                _ => card.Power
                             };
                         }
                         break;
                     case Announces.WithoutAnnounce:
-                        card.Points = card.Rank switch
+                        card.Value = card.Rank switch
                         {
                             "9" => 0,
                             "J" => 2,
-                            _ => card.Points
+                            _ => card.Value
+                        };
+                        card.Power = card.Rank switch
+                        {
+                            "A" => 8,
+                            "10" => 7,
+                            "K" => 6,
+                            "Q" => 5,
+                            "J" => 4,
+                            "9" => 3,
+                            "8" => 2,
+                            "7" => 1,
+                            _ => card.Power
                         };
                         break;
                     case Announces.AllAnnounce:
-                        card.Points = card.Rank switch
+                        card.Value = card.Rank switch
                         {
                             "9" => 14,
                             "J" => 20,
-                            _ => card.Points
+                            _ => card.Value
+                        };
+                        card.Power = card.Rank switch
+                        {
+                            "J" => 8,
+                            "9" => 7,
+                            "A" => 6,
+                            "10" => 5,
+                            "K" => 4,
+                            "Q" => 3,
+                            "8" => 2,
+                            "7" => 1,
+                            _ => card.Power
                         };
                         break;
                     case Announces.None:
@@ -83,7 +131,6 @@ namespace BeloteEngine.Data.Entities.Models
                 }
             }
         }
-
 
         public Announces CurrentAnnounce { get; set; } = Announces.None;
 

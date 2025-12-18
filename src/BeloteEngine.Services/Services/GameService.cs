@@ -25,8 +25,9 @@ namespace BeloteEngine.Services.Services
             ValidateLobby(lobby);
 
             lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
-            lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
             lobby.Game.SortedPlayers = InitSortedPlayers(lobby.Game.Teams);
+            lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
+            lobby.GamePhase = "splitting";
             logger.LogInformation("Current player to split cards: {PlayerName}", lobby.Game.CurrentPlayer.Name);
 
             //DealCards(lobby, 3);
@@ -40,21 +41,29 @@ namespace BeloteEngine.Services.Services
 
         public Player PlayerToSplitCards(Queue<Player> players)
         {
-            var spitter = players.Dequeue();
-            players.Enqueue(spitter);
-            logger.LogInformation("Current player to split cards: {PlayerName}", spitter.Name);
-            return spitter;
+            var splitter = players.Peek();
+            splitter.Splitter = true;
+            logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
+            return splitter;
         }
         public Player PlayerToDealCards(Queue<Player> players)
         {
-            var dealer = players.Dequeue();
-            players.Enqueue(dealer);
+            var splitter = players.Dequeue();
+            splitter.Splitter = false;
+            players.Enqueue(splitter);
+            
+            var dealer = players.Peek();
+            dealer.Dealer = true;
             logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
             return dealer;
         }
         public Player PlayerToStartAnnounceAndPlay(Queue<Player> players)
         {
-            var announcer = players.Dequeue();
+            var dealer = players.Dequeue();
+            dealer.Dealer = false;
+            players.Enqueue(dealer);
+            
+            var announcer = players.Peek();
             players.Enqueue(announcer);
             logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
             return announcer;
@@ -85,10 +94,6 @@ namespace BeloteEngine.Services.Services
             {
                 Teams = SetPlayers(lobby.ConnectedPlayers)
             };
-            int teamRandomResult = new Random().Next(0, 2); // 0 or 1
-            int playerRandomResult = new Random().Next(0, 2); // 0 or 1
-
-            game.Teams[teamRandomResult].Players[playerRandomResult].LastSplitter = true;
             game.Deck = new Deck();
             
             // Assign the game to the lobby

@@ -9,20 +9,20 @@ namespace BeloteEngine.Data.Entities.Models
         public Deck()
         {
             var suits = new List<Suit> { Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades };
-            var ranks = new List<(string Rank, int Points)>
+            var cards = new List<(string rank, int value, int power)>
             {
-                ("7", 0),
-                ("8", 0),
-                ("9", 0),
-                ("10", 10),
-                ("J", 2),
-                ("Q", 3),
-                ("K", 4),
-                ("A", 11)
+                ("7", 0, 1),
+                ("8", 0, 2),
+                ("9", 0, 3),
+                ("10", 10, 4),
+                ("J", 2, 5),
+                ("Q", 3, 6),
+                ("K", 4, 7),
+                ("A", 11, 8)
             };
 
             var allCards = suits.SelectMany(suit =>
-                ranks.Select(rank => new Card(suit, rank.Rank, rank.Points))
+                cards.Select(card => new Card(suit, card.rank, card.value, card.power))
             );
 
             Cards = new Stack<Card>(allCards);

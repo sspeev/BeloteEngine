@@ -1,4 +1,5 @@
-﻿using BeloteEngine.Services.Contracts;
+﻿using BeloteEngine.Data.Entities.Models;
+using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
@@ -6,6 +7,7 @@ namespace BeloteEngine.Api.Hubs
     public class BeloteHub(
         ILogger<BeloteHub> logger
         , ILobbyService lobbyService
+        , IGameService gameService
         ) : Hub
     {
         public override async Task OnConnectedAsync()
@@ -48,6 +50,18 @@ namespace BeloteEngine.Api.Hubs
         {
             var lobby = lobbyService.GetLobby(lobbyId);
             await Clients.Group($"Lobby_{lobbyId}").SendAsync("StartGame", lobby);
+        }
+        
+        public async Task SplittingCards(int lobbyId)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("DealCards", lobby);
+        }
+        
+        public async Task DealingCards(int lobbyId, Queue<Player> players)
+        {
+            var dealer =  gameService.PlayerToDealCards(players);
+            await Clients.Group($"Lobby_{lobbyId}").SendAsync("DealCards", dealer);
         }
     }
 }

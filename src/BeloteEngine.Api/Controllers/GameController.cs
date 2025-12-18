@@ -18,10 +18,12 @@ namespace BeloteEngine.Api.Controllers
         {
             var lobby = lobbyService.GetLobby(lobbyId);
             gameService.GameInitializer(lobby);
-            lobby.GamePhase = "playing";
             gameService.InitialPhase(lobby);
-
+            
             await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("StartGame", lobby);
+            await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("SplittingCards", lobbyId);
+            await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("DealingCards", lobbyId);
+            
             return Ok(new
             {
                 Lobby = lobby

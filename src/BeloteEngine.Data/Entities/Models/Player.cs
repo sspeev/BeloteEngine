@@ -7,19 +7,13 @@ namespace BeloteEngine.Data.Entities.Models
         public int? LobbyId { get; set; }
 
         public required string Name { get; init; }
-
-        public bool Hoster { get; init; }
-
         public Status Status { get; set; } = Status.Disconnected;
-
-        public bool LastSplitter { get; set; }
-
-        /// <summary>
-        /// True if the player plays card first after the cards are dealt.
-        /// </summary>
-        public bool IsStarter { get; set; }
+        public bool Hoster { get; init; }
+        public bool Splitter { get; set; }
+        public bool Dealer { get; set; }
+        public bool Announcer { get; set; }
+        public bool Starter { get; set; }
         public Announces AnnounceOffer { get; set; } = 0;
-
         public List<Card> Hand { get; set; } = [];
 
         //public int Combinations { get; set; }
