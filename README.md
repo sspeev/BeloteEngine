@@ -1,4 +1,4 @@
-# Belote Card Game - Real-Time Multiplayer
+# Belote Card Game - Real-Time Multiplayer Server
 
 A real-time multiplayer Belote card game built with ASP.NET Core SignalR, featuring a single lobby system and live game interactions.
 
