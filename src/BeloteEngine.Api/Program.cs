@@ -1,9 +1,31 @@
 using BeloteEngine.Api.Hubs;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 100;              // Max 10 requests
+        limiterOptions.Window = TimeSpan.FromMinutes(1); // Per 1 minute
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 2;                 // Queue up to 2 requests
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsync(
+            "Too many requests.  Please try again later.",
+            cancellationToken
+        );
+    };
+});
 
 builder.Services
     .AddControllers()
