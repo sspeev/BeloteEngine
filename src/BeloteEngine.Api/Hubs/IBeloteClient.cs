@@ -3,16 +3,18 @@ using BeloteEngine.Data.Entities.Models;
 
 namespace BeloteEngine.Api.Hubs
 {
+    //Server -> Client
     public interface IBeloteClient
     {
-        Task JoinLobby(int lobbyId, RequestInfoModel requset);
+        Task PlayerJoined(int lobbyId, string playerName);
 
-        Task<DeleteModel> LeaveLobby(LeaveRequestModel request);
+        Task PlayerLeft(int lobbyId, string playerName);
 
-        Task DeleteLobby();
+        Task LobbyUpdated(Lobby lobby);
+        Task LobbyDeleted(int lobbyId);
 
-        Task StartGame(Lobby lobby);
+        Task GameStarted(Lobby lobby);
 
-        Task DealingCards(int lobbyId, string gamePhase);
+        Task CardsDealt(int lobbyId, string gamePhase);
     }
 }

@@ -1,14 +1,16 @@
 ﻿using BeloteEngine.Api.Models;
 using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs
 {
+    // Client -> Server
     [Authorize]
     public class BeloteHub(
-        ILogger<BeloteHub> logger
+          ILogger<BeloteHub> logger
         , ILobbyService lobbyService
         , IGameService gameService
         ) : Hub<IBeloteClient>
@@ -36,84 +38,102 @@ namespace BeloteEngine.Api.Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task JoinLobby(int lobbyId, RequestInfoModel request)
+
+        /// <summary>
+        /// Adds the calling player to the specified lobby and notifies all lobby members of the new participant.
+        /// </summary>
+        /// <remarks>After joining, the player is added to the SignalR group for the lobby, and all
+        /// members are notified of the new participant. The caller receives an updated lobby state.</remarks>
+        /// <param name="request">An object containing the lobby identifier and the player's name. The lobby must exist, and the player name
+        /// must be valid.</param>
+        /// <returns>A task that represents the asynchronous join operation.</returns>
+        /// <exception cref="HubException">Thrown if the specified lobby does not exist or if the player cannot join the lobby.</exception>
+        public async Task JoinLobby(RequestInfoModel request)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{lobbyId}");
-            var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
+            Lobby lobby = lobbyService.GetLobby(request.LobbyId)
+                ?? throw new HubException($"Lobby {request.LobbyId} not found");
+
+            Player player = new() 
+            { 
+                Name = request.PlayerName, 
+                LobbyId = request.LobbyId,
+                ConnectionId = Context.ConnectionId
+            };
             var joinResult = lobbyService.JoinLobby(player);
             if (!joinResult.Success)
                 throw new HubException(joinResult.ErrorMessage);
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{request.LobbyId}");
+            logger.LogInformation("Player {PlayerName} joined lobby {LobbyId}", request.PlayerName, request.LobbyId);
+
+            await Clients.Group($"Lobby_{request.LobbyId}")
+                .PlayerJoined(request.LobbyId, request.PlayerName);
+
+            var updatedLobby = lobbyService.GetLobby(request.LobbyId);
+            await Clients.Caller.LobbyUpdated(updatedLobby);
         }
 
-        public async Task<DeleteModel> LeaveLobby(LeaveRequestModel request)
+        public async Task LeaveLobby(LeaveRequestModel request)
         {
+            Lobby lobbyBeforeLeave = lobbyService.GetLobby(request.LobbyId)
+                ?? throw new HubException($"Lobby {request.LobbyId} not found");
+
             var player = new Player 
             { 
                 Name = request.PlayerName, 
                 LobbyId = request.LobbyId 
             };
-
-            Lobby lobbyBeforeLeave = lobbyService.GetLobby(request.LobbyId);
-            bool isLeavingPlayerHost = lobbyBeforeLeave.ConnectedPlayers.Any(p =>
-                p != null &&
-                p.Name == request.PlayerName &&
-                p.Hoster);
-
+            bool isHost = lobbyBeforeLeave.ConnectedPlayers.Any(p =>
+                p.Name == request.PlayerName && p.Hoster);
+                
             bool success = lobbyService.LeaveLobby(player, request.LobbyId);
 
-            if (success)
+            if(!success)
+                throw new HubException("Failed to leave the lobby.");
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Lobby_{request.LobbyId}");
+            logger.LogInformation("Player {PlayerName} left lobby {LobbyId}",
+                request.PlayerName, request.LobbyId);
+
+            var updatedLobby = lobbyService.GetLobby(request.LobbyId);
+            bool shouldDelete = isHost &&
+                (updatedLobby == null || updatedLobby.ConnectedPlayers.Count == 0);
+
+            if (shouldDelete)
             {
-                var lobby = lobbyService.GetLobby(request.LobbyId);
-                if (isLeavingPlayerHost && (lobby == null || lobby.ConnectedPlayers.Count == 0))
-                {
-                    await Clients.Group($"Lobby_{request.LobbyId}")
-                        .DeleteLobby();
-
-                    return new DeleteModel
-                    {
-                        IsLeaveSuccessfull = true,
-                        IsDeletingSuccessfull = true
-                    };
-                }
-
-                // Normal case: player left but lobby continues
-                if (lobby != null)
-                {
-                    // Send the complete lobby object with updated ConnectedPlayers
-                    //await hubContext.Clients.Group($"Lobby_{request.LobbyId}")
-                    //    .SendAsync("PlayerLeft", lobby);
-                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Lobby_{request.LobbyId}");
-                }
+                await Clients.Group($"Lobby_{request.LobbyId}").LobbyDeleted(request.LobbyId);
+                logger.LogInformation("Lobby {LobbyId} deleted", request.LobbyId);
             }
-            return new DeleteModel
+            else
             {
-                IsLeaveSuccessfull = success,
-                IsDeletingSuccessfull = null
-            };
-        }
-
-        public async Task DeleteLobby(Lobby lobby, LeaveRequestModel request)
-        {
-            // Notify all clients that the lobby is closing
-            //await Clients.Group($"Lobby_{request.LobbyId}")
-            //    .SendAsync("LobbyDeleted", new
-            //    {
-            //        LobbyId = request.LobbyId,
-            //        Reason = "Host left the lobby"
-            //    });
-
-            if (lobby != null)
-            {
-                lobbyService.ResetLobby(lobby.Id);
+                await Clients.Group($"Lobby_{request.LobbyId}")
+                    .PlayerLeft(request.LobbyId, request.PlayerName);
             }
         }
 
+        /// <summary>
+        /// Host starts the game
+        /// </summary>
         public async Task StartGame(int lobbyId)
         {
-            var lobby = lobbyService.GetLobby(lobbyId);
-            await Clients.Group($"Lobby_{lobbyId}").StartGame(lobby);
+            //var lobby = lobbyService.GetLobby(lobbyId);
+            //if (lobby == null)
+            //    throw new HubException($"Lobby {lobbyId} not found");
+
+            //gameService.GameInitializer(lobby);
+            //gameService.InitialPhase(lobby);
+            //logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
+            //await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
+
+            //// Deal cards to each player (send different cards to each)
+            //foreach (var player in lobby.ConnectedPlayers.Where(p => p != null))
+            //{
+            //    var playerCards = await gameService.GetPlayerCards(lobbyId, player.Name);
+            //    await Clients.Client(player.ConnectionId)
+            //        .CardsDealt(playerCards);
+            //}
         }
-        
+
         //public async Task DealingCards(int lobbyId, Queue<Player> players)
         //{
         //    var dealer =  gameService.PlayerToDealCards(players);

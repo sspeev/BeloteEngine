@@ -14,7 +14,6 @@ namespace BeloteEngine.Api.Controllers
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public sealed class LobbyController(
-        IHubContext<BeloteHub, IBeloteClient> hubContext,
         ILobbyService lobbyService
     ) : ControllerBase
     {
@@ -32,22 +31,12 @@ namespace BeloteEngine.Api.Controllers
         public async Task<IActionResult> CreateLobby([FromBody] RequestInfoModel request)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var lobby = lobbyService.CreateLobby(request.LobbyName);
-            try
-            {
-                await hubContext.Clients.Group($"Lobby_{lobby.Id}").JoinLobby(lobby.Id, request);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
 
             return CreatedAtAction(
-                nameof(GetLobbyState),
+                nameof(GetLobby),
                 new { lobbyId = lobby.Id },
                 new LobbyResponse
                 {
@@ -71,65 +60,6 @@ namespace BeloteEngine.Api.Controllers
         }
 
         /// <summary>
-        /// Adds the requesting user to the specified lobby and returns the updated lobby information.
-        /// </summary>
-        /// <param name="request">The request data containing the lobby identifier and user details. Must not be null and must satisfy all
-        /// model validation requirements.</param>
-        /// <returns>An <see cref="IActionResult"/> containing the updated lobby information if the operation succeeds;
-        /// otherwise, a bad request result with error details.</returns>
-        [HttpPut("join")]
-        public async Task<IActionResult> JoinLobby([FromBody] RequestInfoModel request)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var lobby = lobbyService.GetLobby(request.LobbyId);
-            try
-            {
-                await hubContext.Clients.Group($"Lobby_{request.LobbyId}").JoinLobby(request.LobbyId, request);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-
-            return Ok(new LobbyResponse
-            {
-                Lobby = lobby
-            });
-        }
-
-        /// <summary>
-        /// Removes the current user from the specified lobby.
-        /// </summary>
-        /// <remarks>Returns a bad request response if the request model is invalid. The lobby may be
-        /// deleted if the user leaving is the last participant.</remarks>
-        /// <param name="request">The request containing the lobby identifier and user information required to leave the lobby. Cannot be
-        /// null.</param>
-        /// <returns>An IActionResult containing the result of the leave operation. The response includes a success flag and
-        /// indicates whether the lobby was deleted as a result.</returns>
-        [HttpDelete("leave")]
-        public async Task<IActionResult> LeaveLobby([FromBody] LeaveRequestModel request)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await hubContext.Clients
-                .Group($"Lobby_{request.LobbyId}")
-                .LeaveLobby(request);
-
-            return Ok(new
-            {
-                Success = result.IsLeaveSuccessfull,
-                LobbyDeleted = result.IsDeletingSuccessfull
-            });
-        }
-
-        /// <summary>
         /// Retrieves the current state of the specified lobby, including player and game information.
         /// </summary>
         /// <remarks>The returned lobby state includes the lobby's ID, name, list of connected players,
@@ -138,7 +68,9 @@ namespace BeloteEngine.Api.Controllers
         /// <returns>An <see cref="IActionResult"/> containing the lobby state if found; otherwise, a NotFound result if the
         /// lobby does not exist.</returns>
         [HttpGet("{lobbyId:int}")]
-        public IActionResult GetLobbyState(int lobbyId)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult GetLobby(int lobbyId)
         {
             var lobby = lobbyService.GetLobby(lobbyId);
             if (lobby == null)

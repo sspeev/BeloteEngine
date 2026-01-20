@@ -8,6 +8,7 @@ namespace BeloteEngine.Data.Entities.Models
 
         public required string Name { get; init; }
         public Status Status { get; set; } = Status.Disconnected;
+        public string ConnectionId { get; set; } = string.Empty;
         public bool Hoster { get; init; }
         public bool Splitter { get; set; }
         public bool Dealer { get; set; }
