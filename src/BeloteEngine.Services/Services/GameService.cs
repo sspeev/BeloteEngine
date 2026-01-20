@@ -46,6 +46,7 @@ namespace BeloteEngine.Services.Services
             logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
             return splitter;
         }
+
         public Player PlayerToDealCards(Queue<Player> players)
         {
             var splitter = players.Dequeue();

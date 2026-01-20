@@ -21,9 +21,11 @@ namespace BeloteEngine.Api.Controllers
             gameService.InitialPhase(lobby);
             
             await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("StartGame", lobby);
-            await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("SplittingCards", lobbyId);
-            await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("DealingCards", lobbyId);
-            
+
+            await hub.Clients.Group($"Lobby_{lobbyId}")
+            //await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("SplittingCards", lobbyId);
+            //await hub.Clients.Group($"Lobby_{lobbyId}").SendAsync("DealingCards", lobbyId);
+
             return Ok(new
             {
                 Lobby = lobby

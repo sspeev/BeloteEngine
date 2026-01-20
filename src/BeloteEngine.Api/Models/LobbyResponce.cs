@@ -9,8 +9,6 @@ namespace BeloteEngine.Api.Models
 
         public LobbyInfo[]? Lobbies { get; set; }
 
-        public string ResInfo { get; set; } = null!;
-
         public bool? IsHostHere { get; set; }
     }
 }
