@@ -1,5 +1,6 @@
 ﻿using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using static BeloteEngine.Data.Entities.Enums.Status;
@@ -8,8 +9,9 @@ using static System.StringComparison;
 namespace BeloteEngine.Services.Services;
 
 public class LobbyService(
-    IGameService gameService
-    , ILogger<LobbyService> logger)
+      IGameService gameService
+    , ILogger<LobbyService> logger
+    , CachingService cachingService)
     : ILobbyService
 {
     private readonly IGameService _gameService = gameService;
@@ -31,7 +33,11 @@ public class LobbyService(
         lobby.Id = lobbyId;
         lobby.Name = lobbyName;
         _lobbies.TryAdd(lobbyId, lobby);
-            
+
+        // Cache the new lobby immediately
+        var cacheKey = $"{lobbyId}";
+        cachingService.Remove(cacheKey); // Ensure clean state
+
         _logger.LogInformation("New lobby created with ID {LobbyId}", lobbyId);
         return lobby;
     }
@@ -88,7 +94,10 @@ public class LobbyService(
             lobby.ConnectedPlayers.Add(player);
             player.Status = Connected;
             player.LobbyId = lobbyId;
-                
+
+            // Invalidate cache since lobby state changed
+            InvalidateLobbyCache(lobbyId);
+
             return new JoinResult 
             { 
                 Success = true,
@@ -133,18 +142,14 @@ public class LobbyService(
                 _lobbies.TryRemove(lobbyId, out _);
                 _logger.LogInformation("Lobby {LobbyId} removed as it's empty", lobbyId);
             }
-                
+            else
+            {
+                // Invalidate cache since lobby state changed
+                InvalidateLobbyCache(lobbyId);
+            }
+
             return true;
         }
-    }
-
-    public Task NotifyLobbyUpdate(int lobbyId)
-    {
-        if (!_lobbies.TryGetValue(lobbyId, out var lobby)) return Task.CompletedTask;
-        CompactPlayers(lobby.ConnectedPlayers);
-        _logger.LogInformation("Lobby {LobbyId} updated. Players: {PlayerCount}, Game started: {GameStarted}",
-            lobbyId, NonNullCount(lobby.ConnectedPlayers), lobby.GameStarted);
-        return Task.CompletedTask;
     }
 
     public void ResetLobby(int lobbyId)
@@ -155,6 +160,9 @@ public class LobbyService(
             lobby.ConnectedPlayers.Clear();
             lobby.GameStarted = false;
             lobby.Game = _gameService.Creator();
+
+            // Invalidate cache after reset
+            InvalidateLobbyCache(lobbyId);
         }
     }
 
@@ -167,17 +175,29 @@ public class LobbyService(
 
     public Lobby GetLobby(int lobbyId)
     {
-        if (_lobbies.TryGetValue(lobbyId, out var lobby))
-        {
-            CompactPlayers(lobby.ConnectedPlayers);
-            return lobby;
-        }
+        string cacheKey = $"{lobbyId}";
 
-        _logger.LogWarning("Lobby {LobbyId} not found", lobbyId);
-        return null!;
+        // Try to get from cache first
+        var lobby = cachingService.GetOrCreate(
+            cacheKey,
+            () =>
+            {
+                if (_lobbies.TryGetValue(lobbyId, out var lobbyFromDict))
+                {
+                    CompactPlayers(lobbyFromDict.ConnectedPlayers);
+                    return lobbyFromDict;
+                }
+
+                _logger.LogWarning("Lobby {LobbyId} not found", lobbyId);
+                return null!;
+            },
+            absoluteExpiration: TimeSpan.FromMinutes(30),
+            slidingExpiration: TimeSpan.FromMinutes(10)
+        );
+        return lobby;
     }
 
-    public List<LobbyInfo> GetAvailableLobbies()
+    public List<LobbyInfoModel> GetAvailableLobbies()
     {
         return [.. _lobbies.Values
             .Select(l =>
@@ -186,7 +206,7 @@ public class LobbyService(
                 return l;
             })
             .Where(l => !l.GameStarted && NonNullCount(l.ConnectedPlayers) < 4)
-            .Select(l => new LobbyInfo
+            .Select(l => new LobbyInfoModel
             {
                 Id = l.Id,
                 Name = l.Name,
@@ -196,5 +216,14 @@ public class LobbyService(
                 GamePhase = l.GamePhase
                     
             })];
+    }
+
+    /// <summary>
+    /// Helper method to invalidate cache when lobby changes
+    /// </summary>
+    private void InvalidateLobbyCache(int lobbyId)
+    {
+        var cacheKey = $"{lobbyId}";
+        cachingService.Remove(cacheKey);
     }
 }

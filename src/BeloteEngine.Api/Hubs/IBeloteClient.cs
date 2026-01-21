@@ -1,20 +1,21 @@
-﻿using BeloteEngine.Api.Models;
-using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Data.Entities.Models;
 
-namespace BeloteEngine.Api.Hubs
+namespace BeloteEngine.Api.Hubs;
+
+//Server -> Client
+public interface IBeloteClient
 {
-    //Server -> Client
-    public interface IBeloteClient
-    {
-        Task PlayerJoined(int lobbyId, string playerName);
+    Task PlayerJoined(int lobbyId, string playerName);
 
-        Task PlayerLeft(int lobbyId, string playerName);
+    Task PlayerLeft(int lobbyId, string playerName);
 
-        Task LobbyUpdated(Lobby lobby);
-        Task LobbyDeleted(int lobbyId);
+    Task LobbyUpdated(Lobby lobby);
 
-        Task GameStarted(Lobby lobby);
+    Task LobbyDeleted(int lobbyId);
 
-        Task CardsDealt(int lobbyId, string gamePhase);
-    }
+    Task GameStarted(Lobby lobby);
+
+    Task CardsDealt(Lobby lobby, string dealerName);
+
+    Task BidMade(Lobby lobby);
 }
