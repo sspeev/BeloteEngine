@@ -10,9 +10,12 @@ public interface IBeloteClient
     Task PlayerLeft(int lobbyId, string playerName);
 
     Task LobbyUpdated(Lobby lobby);
+
     Task LobbyDeleted(int lobbyId);
 
     Task GameStarted(Lobby lobby);
 
-    Task CardsDealt(int lobbyId, string gamePhase, string dealerName);
+    Task CardsDealt(Lobby lobby, string dealerName);
+
+    Task BidMade(Lobby lobby);
 }

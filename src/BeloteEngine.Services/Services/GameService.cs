@@ -187,12 +187,13 @@ public class GameService(
         else lobby.Game.PassCounter++;
         logger.LogInformation("Player {PlayerName} made a bid: {Bid}", playerName, bid);
 
-        if (lobby.Game.PassCounter == 4)
-        {
-            logger.LogInformation("All players passed. Resetting the game.");
-            lobby.Game = GameReset(lobby);
-        }
-        else Gameplay(lobby);
+        //THIS LOGIC WILL BE MOVED ON THE CLIENT SIDE
+        //if (lobby.Game.PassCounter == 4)
+        //{
+        //    logger.LogInformation("All players passed. Resetting the game.");
+        //    lobby.Game = GameReset(lobby);
+        //}
+        //else Gameplay(lobby);
     }
 
     public Game GameReset(Lobby lobby)

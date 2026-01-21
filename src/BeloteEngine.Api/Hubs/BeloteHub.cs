@@ -161,8 +161,7 @@ public class BeloteHub(
         {
             gameService.GetPlayerCards(player.Name, lobby);
         }
-        await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobbyId, lobby.GamePhase, dealer.Name);
-        await Clients.Groups($"Lobby_{lobbyId}").LobbyUpdated(lobby);
+        await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobby, dealer.Name);
     }
 
     /// <summary>
@@ -181,7 +180,7 @@ public class BeloteHub(
         gameService.MakeBid(playerName, bid, lobby);
         logger.LogInformation("Player {PlayerName} made bid {Bid} in lobby {LobbyId}",
             playerName, bid, lobbyId);
-        await Clients.Group($"Lobby_{lobbyId}").LobbyUpdated(lobby);
+        await Clients.Group($"Lobby_{lobbyId}").BidMade(lobby);
     }
 
     //public async Task PlayCard(int lobbyId, string playerName, string card)
