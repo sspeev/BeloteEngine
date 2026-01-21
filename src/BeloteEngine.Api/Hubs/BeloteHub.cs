@@ -73,6 +73,17 @@ namespace BeloteEngine.Api.Hubs
             await Clients.Caller.LobbyUpdated(updatedLobby);
         }
 
+        /// <summary>
+        /// Removes the specified player from the lobby and notifies all connected clients of the player's departure or
+        /// lobby deletion.
+        /// </summary>
+        /// <remarks>If the player leaving is the host and no players remain in the lobby, the lobby is
+        /// deleted and all clients in the lobby are notified. Otherwise, all clients are notified that the player has
+        /// left.</remarks>
+        /// <param name="request">The request containing the lobby identifier and the name of the player to remove from the lobby. Cannot be
+        /// null.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <exception cref="HubException">Thrown if the specified lobby does not exist or if the player cannot be removed from the lobby.</exception>
         public async Task LeaveLobby(LeaveRequestModel request)
         {
             Lobby lobbyBeforeLeave = lobbyService.GetLobby(request.LobbyId)
@@ -121,16 +132,24 @@ namespace BeloteEngine.Api.Hubs
         /// <exception cref="HubException">Thrown if the lobby with the specified lobbyId does not exist.</exception>
         public async Task StartGame(int lobbyId)
         {
-            var lobby = lobbyService.GetLobby(lobbyId);
-            if (lobby == null)
-                throw new HubException($"Lobby {lobbyId} not found");
-
+            var lobby = lobbyService.GetLobby(lobbyId)
+                ?? throw new HubException($"Lobby {lobbyId} not found");
             gameService.GameInitializer(lobby);
             gameService.InitialPhase(lobby);
             logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
             await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
         }
 
+        /// <summary>
+        /// Deals cards to all players in the specified lobby and notifies clients of the updated game state.
+        /// </summary>
+        /// <remarks>This method sets the game phase to "dealing" and broadcasts the updated state to all
+        /// clients in the lobby group. All connected players must be present for the operation to succeed.</remarks>
+        /// <param name="lobbyId">The unique identifier of the lobby in which cards are to be dealt.</param>
+        /// <param name="players">A queue containing the players who will receive cards. The order of players in the queue determines the
+        /// dealing sequence.</param>
+        /// <returns>A task that represents the asynchronous operation of dealing cards and notifying clients.</returns>
+        /// <exception cref="HubException">Thrown if fewer than four players are connected to the lobby when dealing begins.</exception>
         public async Task DealingCards(int lobbyId, Queue<Player> players)
         {
             var lobby = lobbyService.GetLobby(lobbyId);
@@ -141,34 +160,32 @@ namespace BeloteEngine.Api.Hubs
             var dealer = gameService.PlayerToDealCards(players);
             foreach (var player in players)
             {
-                var playerCards = await gameService.GetPlayerCards(lobbyId, player.Name);
-                await Clients.Client(player.ConnectionId)
-                    .CardsDealt(playerCards);
+                gameService.GetPlayerCards(player.Name, lobby);
             }
-            await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobbyId, lobby.GamePhase);
+            await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobbyId, lobby.GamePhase, dealer.Name);
             await Clients.Groups($"Lobby_{lobbyId}").LobbyUpdated(lobby);
         }
 
         public async Task MakeBid(int lobbyId, string playerName, string bid)
         {
-            var lobby = lobbyService.GetLobby(lobbyId);
-            if (lobby == null)
-                throw new HubException($"Lobby {lobbyId} not found");
-            gameService.ProcessBid(lobby, playerName, bid);
+            var lobby = lobbyService.GetLobby(lobbyId)
+                ?? throw new HubException($"Lobby {lobbyId} not found");
+
+            gameService.MakeBid(playerName, bid, lobby);
             logger.LogInformation("Player {PlayerName} made bid {Bid} in lobby {LobbyId}",
                 playerName, bid, lobbyId);
             await Clients.Group($"Lobby_{lobbyId}").LobbyUpdated(lobby);
         }
 
-        public async Task PlayCard(int lobbyId, string playerName, string card)
-        {
-            var lobby = lobbyService.GetLobby(lobbyId);
-            if (lobby == null)
-                throw new HubException($"Lobby {lobbyId} not found");
-            gameService.ProcessPlayCard(lobby, playerName, card);
-            logger.LogInformation("Player {PlayerName} played card {Card} in lobby {LobbyId}",
-                playerName, card, lobbyId);
-            await Clients.Group($"Lobby_{lobbyId}").LobbyUpdated(lobby);
-        }
+        //public async Task PlayCard(int lobbyId, string playerName, string card)
+        //{
+        //    var lobby = lobbyService.GetLobby(lobbyId);
+        //    if (lobby == null)
+        //        throw new HubException($"Lobby {lobbyId} not found");
+        //    gameService.ProcessPlayCard(lobby, playerName, card);
+        //    logger.LogInformation("Player {PlayerName} played card {Card} in lobby {LobbyId}",
+        //        playerName, card, lobbyId);
+        //    await Clients.Group($"Lobby_{lobbyId}").LobbyUpdated(lobby);
+        //}
     }
 }

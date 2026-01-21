@@ -7,7 +7,7 @@ using static BeloteEngine.Data.Entities.Enums.Announces;
 namespace BeloteEngine.Services.Services
 {
     public class GameService(
-         ILogger<GameService> logger)
+          ILogger<GameService> logger)
         : IGameService
     {
         private static void ValidateLobby(Lobby lobby)
@@ -20,6 +20,7 @@ namespace BeloteEngine.Services.Services
                 throw new ArgumentException($"Invalid teams configuration. Each team must have exactly 2 players.");
             }
         }
+
         public void InitialPhase(Lobby lobby)
         {
             ValidateLobby(lobby);
@@ -29,9 +30,6 @@ namespace BeloteEngine.Services.Services
             lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
             lobby.GamePhase = "splitting";
             logger.LogInformation("Current player to split cards: {PlayerName}", lobby.Game.CurrentPlayer.Name);
-
-            //DealCards(lobby, 3);
-            //DealCards(lobby, 2);
         }
 
         public Game Gameplay(Lobby lobby)
@@ -52,23 +50,25 @@ namespace BeloteEngine.Services.Services
             var splitter = players.Dequeue();
             splitter.Splitter = false;
             players.Enqueue(splitter);
-            
+
             var dealer = players.Peek();
             dealer.Dealer = true;
             logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
             return dealer;
         }
+
         public Player PlayerToStartAnnounceAndPlay(Queue<Player> players)
         {
             var dealer = players.Dequeue();
             dealer.Dealer = false;
             players.Enqueue(dealer);
-            
+
             var announcer = players.Peek();
             players.Enqueue(announcer);
             logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
             return announcer;
         }
+
         public Player GetNextPlayer(Queue<Player> players)
         {
             var nextPlayer = players.Dequeue();
@@ -76,10 +76,12 @@ namespace BeloteEngine.Services.Services
             logger.LogInformation("Next player to make an action: {PlayerName}", nextPlayer.Name);
             return nextPlayer;
         }
+
         public bool IsGameOver(int team1Score, int team2Score)
         {
             return team1Score >= 151 || team2Score >= 151;
         }
+
         private static Queue<Player> InitSortedPlayers(Team[] teams)
         {
             Queue<Player> sortedPlayers = new();
@@ -89,6 +91,7 @@ namespace BeloteEngine.Services.Services
             sortedPlayers.Enqueue(teams[1].Players[1]);
             return sortedPlayers;
         }
+
         public void GameInitializer(Lobby lobby)
         {
             Game game = new()
@@ -96,7 +99,7 @@ namespace BeloteEngine.Services.Services
                 Teams = SetPlayers(lobby.ConnectedPlayers)
             };
             game.Deck = new Deck();
-            
+
             // Assign the game to the lobby
             lobby.Game = game;
             lobby.GameStarted = true;
@@ -104,6 +107,7 @@ namespace BeloteEngine.Services.Services
             logger.LogInformation("Game initialized with players: {Players}",
                 string.Join(", ", game.Teams.SelectMany(team => team.Players.Select(player => player.Name))));
         }
+
         private static Team[] SetPlayers(List<Player> connectedPlayers)
         {
             Team team1 = new()
@@ -128,6 +132,7 @@ namespace BeloteEngine.Services.Services
 
             return [team1, team2];
         }
+
         private static Stack<Card> CardsRandomizer(Stack<Card> cards)
         {
             if (cards == null || cards.Count == 0)
@@ -142,61 +147,53 @@ namespace BeloteEngine.Services.Services
             return new Stack<Card>(firstHalf.Concat(secondHalf));
         }
 
-        // public void DealCards(Lobby lobby, int count)
-        // {
-        //     var players = AllPlayers(lobby.Game.Teams);
-        //     var deck = lobby.Game.Deck.Cards;
-        //
-        //     foreach (var player in players)
-        //     {
-        //         for (int i = 0; i < count; i++)
-        //         {
-        //             if (deck.TryPop(out var card))
-        //             {
-        //                 player.Hand.Add(card);
-        //             }
-        //         }
-        //     }
-        // }
-
-        public Player NextPlayerToAnnounce(Game game)
+        public void GetPlayerCards(string playerNamem, Lobby lobby)
         {
-            var currPlayer = game.CurrentPlayer;
-            if (currPlayer.AnnounceOffer == None)
-            {
-                throw new ArgumentNullException($"{currPlayer.Name} announce offer is not set.");
-            }
-            if(game.CurrentAnnounce != Pass)
-            {
-                if(game.CurrentAnnounce < currPlayer.AnnounceOffer)
-                {
-                    logger.LogInformation("Current announce updated to: {Announce}", currPlayer.AnnounceOffer);
-                    game.CurrentAnnounce = currPlayer.AnnounceOffer;
+            var deck = lobby.Game.Deck.Cards;
 
-                    return GetNextPlayer(game.SortedPlayers);
+            foreach (var player in lobby.ConnectedPlayers)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (deck.TryPop(out var card))
+                    {
+                        player.Hand.Add(card);
+                    }
+                }
+            }
+        }
+
+        public void MakeBid(string playerName, string bid, Lobby lobby)
+        {
+            var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
+                ?? throw new ArgumentException($"Player {playerName} not found in the lobby.");
+
+            if (!Enum.TryParse(bid, out Announces announce))
+            {
+                throw new ArgumentException($"Invalid bid: {bid} or failed to parse");
+            }
+            player.AnnounceOffer = announce;
+
+            if (lobby.Game.CurrentAnnounce != Pass)
+            {
+                if (lobby.Game.CurrentAnnounce < player.AnnounceOffer)
+                {
+                    logger.LogInformation("Current announce updated to: {Announce}", player.AnnounceOffer);
+                    lobby.Game.CurrentAnnounce = player.AnnounceOffer;
+
                 }
                 else throw new InvalidOperationException("Current announce cannot be lower than the previous one!");
             }
-            else game.PassCounter++;
+            else lobby.Game.PassCounter++;
+            logger.LogInformation("Player {PlayerName} made a bid: {Bid}", playerName, bid);
 
-            throw new Exception("No next player to announce found or game is in an invalid state.");
+            if (lobby.Game.PassCounter == 4)
+            {
+                logger.LogInformation("All players passed. Resetting the game.");
+                lobby.Game = GameReset(lobby);
+            }
+            else Gameplay(lobby);
         }
-
-        //private Game EndStateOfInitialPhase()
-        //{
-        //    if (lobby.Game.PassCounter == 4)
-        //    {
-        //        return GameReset(lobby.Game);
-        //    }
-        //    else if (lobby.Game.PassCounter == 3 && lobby.Game.CurrentAnnounce != None)
-        //    {
-        //        Gameplay(lobby.Game);
-        //    }
-        //    else
-        //    {
-
-        //    }
-        //}
 
         public Game GameReset(Lobby lobby)
         {
