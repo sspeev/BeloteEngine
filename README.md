@@ -1,156 +1,339 @@
-# Belote Card Game - Real-Time Multiplayer Server
+<div align="center">
 
-A real-time multiplayer Belote card game built with ASP.NET Core SignalR, featuring a single lobby system and live game interactions.
+# 🔴 BeloteEngine 🔴
 
-## 🏗️ Project Architecture
+**A modern, real-time multiplayer Belote card game implementation**
 
-### Overview
-This project follows a clean architecture pattern with clear separation of concerns:
-- **Hub Layer**: SignalR communication management
-- **Service Layer**: Business logic and game rules
-- **Models Layer**: Data transfer objects and domain entities
-- **Singleton Pattern**: Single lobby instance for simplified game management
+[![License:  MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![C#](https://img.shields.io/badge/C%23-12.0-239120?logo=csharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![SignalR](https://img.shields.io/badge/SignalR-Real--time-00ADD8?logo=microsoft)](https://dotnet.microsoft.com/apps/aspnet/signalr)
 
-### Architecture Diagram
+[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#%EF%B8%8F-architecture) • [API Documentation](#-api-documentation)
 
-┌─────────────────┐ ┌──────────────────┐ ┌─────────────────┐ │ Client Web │◄──►│ BeloteHub │◄──►│ LobbyService │ │ (JavaScript) │ │ (SignalR) │ │ │ └─────────────────┘ └──────────────────┘ └─────────────────┘ │ │ │ ▼ │ ┌─────────────────┐ │ │ ILobby │ │ │ (Singleton) │ │ └─────────────────┘ │ ▼ ┌──────────────────┐ │ GameService │ │ │ └──────────────────┘
+</div>
 
-## 📁 Project Structure
-BeloteGame/ 
-├── 📁 Models/ # Data models and DTOs 
-│ ├── Player.cs # Player entity 
-│ ├── LobbyInfo.cs # Lobby state information 
-│ ├── JoinResult.cs # Join operation result 
-│ ├── Card.cs # Game card model 
-│ ├── GameState.cs # Current game state 
-│ └── Bid.cs # Bidding information 
-│ ├── 📁 Services/ 
-│ ├── 📁 Contracts/ # Service interfaces 
-│ │ ├── ILobbyService.cs # Lobby management contract 
-│ │ ├── IGameService.cs # Game logic contract 
-│ │ └── ILobby.cs # Singleton lobby contract 
-│ │ │ └── 📁 Implementations/ # Service implementations 
-│ ├── LobbyService.cs # Lobby business logic 
-│ ├── GameService.cs # Game rules and state 
-│ └── Lobby.cs # Singleton lobby instance 
-│ ├── 📁 Hubs/ # SignalR communication 
-│ └── BeloteHub.cs # Real-time communication hub 
-│ └── Program.cs # Application startup and DI
+---
 
+## 📖 About
+
+BeloteEngine is a web-based implementation of the classic card game **Belote**, built in .NET. It features real-time multiplayer gameplay powered by SignalR and a robust game engine that faithfully implements Belote rules.
+
+## ✨ Features
+
+- 🎮 **Real-time Multiplayer** - Live gameplay using ASP.NET Core SignalR
+- 🏗️ **Clean Architecture** - Clear separation of concerns with layered design
+- 🌐 **Web-Based** - Play in your browser from any device, no installation required
+- 🐳 **Docker Ready** - Easy deployment with Docker Compose
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Docker](https://www.docker.com/get-started) (optional, for containerized deployment)
+
+### Running with Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/sspeev/BeloteEngine.git
+cd BeloteEngine
+
+# Start the development environment
+docker compose up dev
+
+# Or start the production environment
+docker compose up prod
+```
+
+The application will be available at `http://localhost:8081`
+
+### Running Locally
+
+```bash
+# Clone the repository
+git clone https://github.com/sspeev/BeloteEngine.git
+cd BeloteEngine
+
+# Restore dependencies
+dotnet restore
+
+# Run the API project
+dotnet run --project src/BeloteEngine. Api
+```
+
+## 🏗️ Architecture
+
+BeloteEngine follows **Clean Architecture** principles with clear separation of concerns:
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Client Web    │◄───►│    BeloteHub     │◄───►│  LobbyService   │
+│  (TypeScript)   │     │    (SignalR)     │     │                 │
+└─────────────────┘     └──────────────────┘     └────────┬────────┘
+                                                           │
+                                                           ▼
+                                                  ┌──────────────────┐
+                                                  │   GameService    │
+                                                  │                  │
+                                                  └──────────────────┘
+```
+
+### Project Structure
+
+```
+BeloteEngine/
+├── 📁 src/
+│   ├── 📁 BeloteEngine.Api/          # Web API & SignalR Hub
+│   │   ├── Hubs/                     # Communication layer
+│   │   │   └── BeloteHub. cs         # Real-time game hub
+│   │   ├── Controllers/              # HTTP endpoints
+│   │   └── Program.cs               # Application entry point
+│   │
+│   ├── 📁 BeloteEngine. Services/     # Business logic layer
+│   │   ├── Contracts/                # Service interfaces
+│   │   │   ├── ILobbyService.cs
+│   │   │   └── IGameService.cs
+│   │   └── Services/                 # Service implementations
+│   │       ├── LobbyService. cs      # Lobby management
+│   │       └── GameService. cs       # Game rules & logic
+│   │
+│   └── 📁 BeloteEngine.Data/         # Data layer
+│       └── Entities/
+│           ├── Models/               # Domain models
+│           │   ├── Player.cs        # Player entity
+│           │   ├── Card.cs          # Card representation
+│           │   ├── Deck.cs          # Deck management
+│           │   ├── Game.cs          # Game state
+│           │   ├── Lobby.cs         # Lobby entity
+│           │   └── Team.cs          # Team entity
+│           └── Enums/                # Game enumerations
+│               ├── Suit. cs          # Card suits
+│               ├── Status.cs        # Player status
+│               └── Announces.cs     # Trump announcements
+│
+├── 📁 wwwroot/                       # Static web assets
+├── 🐳 compose.yaml                   # Docker Compose configuration
+├── 📄 BeloteEngine. sln               # Solution file
+└── 📜 LICENSE.txt                    # MIT License
+```
 
 ## 🎯 Core Components
 
 ### 1. Hub Layer (`BeloteHub`)
-**Responsibility**: Handle real-time client-server communication
-- Manages SignalR connections
-- Routes client requests to appropriate services
-- Handles connection/disconnection events
-- Manages SignalR groups for lobby organization
 
-**Key Methods**:
+**Responsibility:** Handle real-time client-server communication
+
+- 🔌 Manages SignalR connections
+- 🔀 Routes client requests to services
+- 📡 Handles connection/disconnection events
+- 👥 Manages SignalR groups for lobbies
+
+**Key Methods:**
 - `JoinLobby()` - Add player to lobby
 - `LeaveLobby()` - Remove player from lobby
 - `StartGame()` - Initiate game session
-- `PlayCard(Card card)` - Process card plays
-- `MakeBid(Bid bid)` - Handle bidding
+- `PlayCard()` - Process card plays
+- `MakeBid()` - Handle bidding
 
 ### 2. Service Layer
 
-#### LobbyService (`ILobbyService`)
-**Responsibility**: Manage lobby state and player sessions
+#### 🏠 LobbyService (`ILobbyService`)
+
+**Responsibility:** Manage lobby state and player sessions
+
 - Player join/leave operations
 - Lobby state management
 - Game initiation logic
-- Connection handling
-- Real-time notifications via HubContext
+- Real-time updates via HubContext
 
-**Key Features**:
-- Thread-safe operations with locking
-- Single lobby instance management
-- Player limit enforcement (4 players max)
-- Disconnection handling
+**Key Features:**
+- 🔒 Thread-safe operations
+- 👤 Player limit enforcement (4 players max)
+- 🎮 Multi-lobby support
 
-#### GameService (`IGameService`)
-**Responsibility**: Implement Belote game rules and logic
+#### 🎲 GameService (`IGameService`)
+
+**Responsibility:** Implement Belote game rules and logic
+
 - Game state management
 - Card play validation
-- Bidding system
+- Bidding system (Clubs ♣, Diamonds ♦, Hearts ♥, Spades ♠)
 - Score calculation
 - Turn management
 
-#### Lobby Singleton (`ILobby`)
-**Responsibility**: Maintain single lobby instance
-- Player collection management
-- Game state tracking
-- Thread-safe operations
-- Lobby reset functionality
+### 3. Data Layer
 
-### 3. Models Layer
-**Responsibility**: Define data structures and DTOs
+**Domain Models:**
+- **Lobby** - Game lobby with players and game state
+- **Player** - User information, connection details, hand of cards
+- **Card** - Suit, rank, value, and power
+- **Deck** - Standard 32-card Belote deck
+- **Game** - Complete game state, teams, current player
+- **Team** - Two players per team, score tracking
 
-#### Core Models:
-- **Player**: User information and connection details
-- **LobbyInfo**: Current lobby state for client updates
-- **JoinResult**: Operation result with success/error information
-- **Card**: Game card representation
-- **GameState**: Complete game state information
-- **Bid**: Bidding information and validation
+## 🔄 Game Flow
 
-## 🔄 Data Flow
+### 1️⃣ Player Join Flow
 
-### Player Join Flow
-1. Client calls JoinLobby() → BeloteHub
-2. BeloteHub → LobbyService.JoinLobby()
-3. LobbyService updates Lobby singleton
-4. LobbyService → HubContext.NotifyLobbyUpdate()
-5. All lobby clients receive LobbyUpdated event
+```
+Client → JoinLobby() → BeloteHub
+                           ↓
+                    LobbyService.JoinLobby()
+                           ↓
+                    Update Lobby State
+                           ↓
+            Notify All Players (LobbyUpdated)
+```
 
-### Game Start Flow
-1. Client calls StartGame() → BeloteHub
-2. BeloteHub → LobbyService.StartGame()
-3. LobbyService validates player count (4 players)
-4. LobbyService → GameService.StartNewGame()
-5. GameService creates new game state
-6. All players receive GameStarted event with initial state
+### 2️⃣ Game Start Flow
 
-### Card Play Flow
-1. Client calls PlayCard(card) → BeloteHub
-2. BeloteHub → GameService.PlayCard()
-3. GameService validates move and updates state
-4. All players receive CardPlayed event with new state
+```
+Client → StartGame() → BeloteHub
+                          ↓
+                   Validate 4 Players
+                          ↓
+                   GameService.StartNewGame()
+                          ↓
+           Initialize Deck & Deal Cards
+                          ↓
+        Broadcast GameStarted to All Players
+```
 
-## 🛡️ Key Design Patterns
+### 3️⃣ Bidding Phase Flow
 
-### 1. Dependency Injection
-- All services registered as singletons
-- Clear separation of contracts and implementations
-- Testable architecture with interface-based design
+```
+Current Player → MakeBid() → BeloteHub
+                                ↓
+                        Validate Bid
+                                ↓
+                    Update Game State
+                                ↓
+                Next Player or Start Play
+```
 
-### 2. Singleton Pattern
-- Single lobby instance shared across all connections
-- Thread-safe operations with explicit locking
-- Simplified state management without ID tracking
+### 4️⃣ Card Play Flow
 
-### 3. Observer Pattern (via SignalR)
-- Real-time state synchronization
-- Event-driven client updates
-- Automatic notification system
+```
+Client → PlayCard(card) → BeloteHub
+                             ↓
+                    GameService. PlayCard()
+                             ↓
+                Validate Move & Update State
+                             ↓
+        Broadcast CardPlayed to All Players
+```
 
-### 4. Service Layer Pattern
-- Business logic separated from communication logic
-- Reusable services for different endpoints
-- Clear responsibility boundaries
+## 🎴 Belote Rules Implementation
+
+### Card Values
+
+| Rank | Trump Value | Non-Trump Value |
+|------|------------|-----------------|
+| J    | 20         | 2              |
+| 9    | 14         | 0              |
+| A    | 11         | 11             |
+| 10   | 10         | 10             |
+| K    | 4          | 4              |
+| Q    | 3          | 3              |
+| 8    | 0          | 0              |
+| 7    | 0          | 0              |
+
+### Game Phases
+
+1. **Splitting** - First player splits the deck
+2. **Dealing** - Cards are dealt (3-2-3 pattern)
+3. **Bidding** - Players bid for trump suit or pass
+4. **Playing** - Card play with trick-taking rules
+5. **Scoring** - Team score calculation
+
+### Winning Condition
+
+First team to reach **151 points** wins! 
+
+## 🛡️ Design Patterns
+
+- **Dependency Injection** - All services registered with proper lifetimes
+- **Observer Pattern** - Real-time updates via SignalR
+- **Service Layer Pattern** - Clear separation of business logic
 
 ## 🔧 Configuration
 
 ### Service Registration (Program.cs)
+
 ```csharp
 builder.Services.AddSignalR();
 
-// Register singleton services
-builder.Services.AddSingleton<ILobby, Lobby>();
+// Register services
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 
 // Map SignalR hub
-app.MapHub<BeloteHub>("/belotehub");
+app. MapHub<BeloteHub>("/belotehub");
+```
+
+## 🐳 Docker Configuration
+
+### Development Environment
+
+```bash
+docker compose up dev
+```
+
+- Hot reload enabled
+- Volume mounting for live code changes
+- Debug logging
+
+### Production Environment
+
+```bash
+docker compose up prod
+```
+
+- Optimized build
+- Production logging
+- Minimal container size
+
+## 📚 API Documentation
+
+### SignalR Hub Methods
+
+#### Client → Server
+
+- `JoinLobby(RequestInfoModel)` - Join a game lobby
+- `LeaveLobby(LeaveRequestModel)` - Leave the current lobby
+- `StartGame(int lobbyId)` - Host starts the game
+- `MakeBid(BidModel)` - Make a trump bid
+- `PlayCard(CardModel)` - Play a card from hand
+
+#### Server → Client
+
+- `LobbyUpdated(LobbyInfo)` - Lobby state changed
+- `GameStarted(GameState)` - Game has begun
+- `CardsDealt(List<Card>)` - Player receives cards
+- `CardPlayed(GameState)` - Card was played
+- `GameOver(GameResult)` - Game finished
+
+## 🤝 Contributing
+
+Contributions are welcome!   Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+---
+
+<div align="center">
+
+**Made with ❤️ by [sspeev](https://github.com/sspeev)**
+
+⭐ Star this repository if you find it helpful!
+
+</div>
