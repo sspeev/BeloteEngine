@@ -112,32 +112,63 @@ namespace BeloteEngine.Api.Hubs
         }
 
         /// <summary>
-        /// Host starts the game
+        /// Starts a new game session in the specified lobby and notifies all connected clients in that lobby.
         /// </summary>
+        /// <remarks>This method initializes the game state for the lobby and sends a notification to all
+        /// clients in the lobby group. The game will not start if the lobby is not found.</remarks>
+        /// <param name="lobbyId">The unique identifier of the lobby in which to start the game. Must correspond to an existing lobby.</param>
+        /// <returns>A task that represents the asynchronous operation of starting the game and notifying clients.</returns>
+        /// <exception cref="HubException">Thrown if the lobby with the specified lobbyId does not exist.</exception>
         public async Task StartGame(int lobbyId)
         {
-            //var lobby = lobbyService.GetLobby(lobbyId);
-            //if (lobby == null)
-            //    throw new HubException($"Lobby {lobbyId} not found");
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if (lobby == null)
+                throw new HubException($"Lobby {lobbyId} not found");
 
-            //gameService.GameInitializer(lobby);
-            //gameService.InitialPhase(lobby);
-            //logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
-            //await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
-
-            //// Deal cards to each player (send different cards to each)
-            //foreach (var player in lobby.ConnectedPlayers.Where(p => p != null))
-            //{
-            //    var playerCards = await gameService.GetPlayerCards(lobbyId, player.Name);
-            //    await Clients.Client(player.ConnectionId)
-            //        .CardsDealt(playerCards);
-            //}
+            gameService.GameInitializer(lobby);
+            gameService.InitialPhase(lobby);
+            logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
+            await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
         }
 
-        //public async Task DealingCards(int lobbyId, Queue<Player> players)
-        //{
-        //    var dealer =  gameService.PlayerToDealCards(players);
-        //    await Clients.Group($"Lobby_{lobbyId}").SendAsync("DealCards", dealer);
-        //}
+        public async Task DealingCards(int lobbyId, Queue<Player> players)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if(lobby.ConnectedPlayers.Count < 4)
+                throw new HubException("Someone left the lobby");
+
+            lobby.GamePhase = "dealing";
+            var dealer = gameService.PlayerToDealCards(players);
+            foreach (var player in players)
+            {
+                var playerCards = await gameService.GetPlayerCards(lobbyId, player.Name);
+                await Clients.Client(player.ConnectionId)
+                    .CardsDealt(playerCards);
+            }
+            await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobbyId, lobby.GamePhase);
+            await Clients.Groups($"Lobby_{lobbyId}").LobbyUpdated(lobby);
+        }
+
+        public async Task MakeBid(int lobbyId, string playerName, string bid)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if (lobby == null)
+                throw new HubException($"Lobby {lobbyId} not found");
+            gameService.ProcessBid(lobby, playerName, bid);
+            logger.LogInformation("Player {PlayerName} made bid {Bid} in lobby {LobbyId}",
+                playerName, bid, lobbyId);
+            await Clients.Group($"Lobby_{lobbyId}").LobbyUpdated(lobby);
+        }
+
+        public async Task PlayCard(int lobbyId, string playerName, string card)
+        {
+            var lobby = lobbyService.GetLobby(lobbyId);
+            if (lobby == null)
+                throw new HubException($"Lobby {lobbyId} not found");
+            gameService.ProcessPlayCard(lobby, playerName, card);
+            logger.LogInformation("Player {PlayerName} played card {Card} in lobby {LobbyId}",
+                playerName, card, lobbyId);
+            await Clients.Group($"Lobby_{lobbyId}").LobbyUpdated(lobby);
+        }
     }
 }

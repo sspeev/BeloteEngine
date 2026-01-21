@@ -15,6 +15,6 @@ namespace BeloteEngine.Api.Hubs
 
         Task GameStarted(Lobby lobby);
 
-        Task CardsDealt(int lobbyId, string gamePhase);
+        Task CardsDealt(int lobbyId, string gamePhase, string dealerName);
     }
 }
