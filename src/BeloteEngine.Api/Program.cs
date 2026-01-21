@@ -7,6 +7,13 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 100;
+    options.CompactionPercentage = 0.25;
+    options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
+});
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("fixed", limiterOptions =>
@@ -80,6 +87,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<CachingService>();
 builder.Services.AddLogging(logging =>
 {
     logging.ClearProviders();
