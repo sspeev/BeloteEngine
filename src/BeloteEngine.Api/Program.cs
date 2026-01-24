@@ -87,6 +87,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<IConnectionLimiter, ConnectionLimiter>();
 builder.Services.AddSingleton<CachingService>();
 builder.Services.AddLogging(logging =>
 {

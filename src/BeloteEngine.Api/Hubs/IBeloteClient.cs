@@ -5,9 +5,9 @@ namespace BeloteEngine.Api.Hubs;
 //Server -> Client
 public interface IBeloteClient
 {
-    Task PlayerJoined(int lobbyId, string playerName);
+    Task PlayerJoined(Lobby lobby);
 
-    Task PlayerLeft(int lobbyId, string playerName);
+    Task PlayerLeft(Lobby lobby);
 
     Task LobbyUpdated(Lobby lobby);
 
