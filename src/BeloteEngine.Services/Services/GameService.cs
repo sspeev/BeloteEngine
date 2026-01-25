@@ -147,18 +147,13 @@ public class GameService(
         return new Stack<Card>(firstHalf.Concat(secondHalf));
     }
 
-    public void GetPlayerCards(string playerNamem, Lobby lobby)
+    public void GetPlayerCards(Player player, Deck deck)
     {
-        var deck = lobby.Game.Deck.Cards;
-
-        foreach (var player in lobby.ConnectedPlayers)
+        for (int i = 1; i <= 8; i++)
         {
-            for (int i = 0; i < 4; i++)
+            if (deck.Cards.TryPop(out var card))
             {
-                if (deck.TryPop(out var card))
-                {
-                    player.Hand.Add(card);
-                }
+                player.Hand.Add(card);
             }
         }
     }

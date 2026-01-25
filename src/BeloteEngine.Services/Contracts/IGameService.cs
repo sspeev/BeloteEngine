@@ -12,7 +12,7 @@ public interface IGameService
     public Player PlayerToStartAnnounceAndPlay(Queue<Player> players);
     public Player GetNextPlayer(Queue<Player> players);
     public bool IsGameOver(int team1Score, int team2Score);
-    void GetPlayerCards(string playerName, Lobby lobby);
+    void GetPlayerCards(Player player, Deck deck);
     void MakeBid(string playerName, string bid, Lobby lobby);
     Game GameReset(Lobby lobby);
     Game NextGame(Lobby lobby);

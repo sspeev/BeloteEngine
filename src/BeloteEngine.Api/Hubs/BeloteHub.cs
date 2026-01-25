@@ -145,11 +145,15 @@ public class BeloteHub(
         await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
     }
 
-    public async Task DealingCards(int lobbyId, Queue<Player> players)
+    public async Task DealingCards(int lobbyId, List<Player> playersList)
     {
-        var lobby = lobbyService.GetLobby(lobbyId);
+        var lobby = lobbyService.GetLobby(lobbyId)
+            ?? throw new HubException($"Lobby {lobbyId} not found");
+
         if (lobby.ConnectedPlayers.Count < 4)
             throw new HubException("Someone left the lobby");
+
+        var players = lobby.Game.SortedPlayers;
 
         lobby.GamePhase = "dealing";
         lobby.UpdateActivity();
@@ -157,7 +161,7 @@ public class BeloteHub(
         var dealer = gameService.PlayerToDealCards(players);
         foreach (var player in players)
         {
-            gameService.GetPlayerCards(player.Name, lobby);
+            gameService.GetPlayerCards(player, lobby.Game.Deck);
         }
 
         await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobby, dealer.Name);
