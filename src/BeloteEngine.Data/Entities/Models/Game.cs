@@ -84,7 +84,7 @@ namespace BeloteEngine.Data.Entities.Models
                             };
                         }
                         break;
-                    case Announces.WithoutAnnounce:
+                    case Announces.NoTrump:
                         card.Value = card.Rank switch
                         {
                             "9" => 0,
@@ -104,7 +104,7 @@ namespace BeloteEngine.Data.Entities.Models
                             _ => card.Power
                         };
                         break;
-                    case Announces.AllAnnounce:
+                    case Announces.AllTrumps:
                         card.Value = card.Rank switch
                         {
                             "9" => 14,
@@ -135,6 +135,14 @@ namespace BeloteEngine.Data.Entities.Models
         public Announces CurrentAnnounce { get; set; } = Announces.None;
 
         public Player CurrentPlayer { get; set; } = null!;
+
+        public Player Splitter { get; set; } = null!;
+
+        public Player Dealer { get; set; } = null!;
+
+        public Player Announcer { get; set; } = null!;
+
+        public Player Starter { get; set; } = null!;
 
         public int PassCounter { get; set; }
     }

@@ -139,6 +139,7 @@ public class BeloteHub(
 
         gameService.GameInitializer(lobby);
         gameService.InitialPhase(lobby);
+        lobby.Game.Splitter = lobby.ConnectedPlayers.FirstOrDefault(p => p.Splitter);
         lobby.UpdateActivity();
 
         logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
@@ -159,25 +160,28 @@ public class BeloteHub(
         lobby.UpdateActivity();
 
         var dealer = gameService.PlayerToDealCards(players);
+        lobby.Game.Dealer = dealer;
+        var firstBidder = gameService.PlayerToStartAnnounceAndPlay(players);
+        lobby.Game.Announcer = firstBidder;
+        lobby.Game.CurrentPlayer = firstBidder;
         foreach (var player in players)
         {
             gameService.GetPlayerCards(player, lobby.Game.Deck);
         }
 
-        await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobby, dealer.Name);
+        await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobby, dealer.Name, firstBidder.Name);
     }
 
     public async Task MakeBid(int lobbyId, string playerName, string bid)
     {
         var lobby = lobbyService.GetLobby(lobbyId)
             ?? throw new HubException($"Lobby {lobbyId} not found");
+        lobby.GamePhase = "bidding";
 
         // Validate the caller owns this player
         var callingPlayer = lobby.ConnectedPlayers
-            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
-
-        if (callingPlayer == null)
-            throw new HubException("You are not in this lobby");
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
+            ?? throw new HubException("You are not in this lobby");
 
         if (callingPlayer.Name != playerName)
         {
@@ -186,19 +190,19 @@ public class BeloteHub(
             throw new HubException("You can only make bids for yourself");
         }
 
-        // Validate it's their turn
-        if (lobby.Game?.CurrentPlayer?.Name != playerName)
-            throw new HubException("It's not your turn");
+        // Validate it's this player's turn to bid
+        if (lobby.Game.CurrentPlayer?.Name != playerName)
+        {
+            logger.LogWarning("Player {PlayerName} tried to bid out of turn. Current player is {CurrentPlayer}",
+                playerName, lobby.Game.CurrentPlayer?.Name);
+            throw new HubException("It's not your turn to bid");
+        }
 
-        // Validate game phase
-        if (lobby.GamePhase != "bidding")
-            throw new HubException("Not in bidding phase");
-
-        gameService.MakeBid(playerName, bid, lobby);
+        var nextPlayer = gameService.MakeBid(playerName, bid, lobby);
         lobby.UpdateActivity();
 
-        logger.LogInformation("Player {PlayerName} made bid {Bid} in lobby {LobbyId}",
-            playerName, bid, lobbyId);
+        logger.LogInformation("Player {PlayerName} made bid {Bid} in lobby {LobbyId}. Next player: {NextPlayer}",
+            playerName, bid, lobbyId, nextPlayer.Name);
 
         await Clients.Group($"Lobby_{lobbyId}").BidMade(lobby);
     }

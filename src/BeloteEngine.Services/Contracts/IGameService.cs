@@ -10,10 +10,11 @@ public interface IGameService
     public Player PlayerToSplitCards(Queue<Player> players);
     public Player PlayerToDealCards(Queue<Player> players);
     public Player PlayerToStartAnnounceAndPlay(Queue<Player> players);
+    public Player GetNextBidder(Lobby lobby);
     public Player GetNextPlayer(Queue<Player> players);
     public bool IsGameOver(int team1Score, int team2Score);
     void GetPlayerCards(Player player, Deck deck);
-    void MakeBid(string playerName, string bid, Lobby lobby);
+    Player MakeBid(string playerName, string bid, Lobby lobby);
     Game GameReset(Lobby lobby);
     Game NextGame(Lobby lobby);
     Game Creator();

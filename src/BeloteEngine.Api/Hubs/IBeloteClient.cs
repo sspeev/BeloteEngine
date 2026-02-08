@@ -15,7 +15,7 @@ public interface IBeloteClient
 
     Task GameStarted(Lobby lobby);
 
-    Task CardsDealt(Lobby lobby, string dealerName);
+    Task CardsDealt(Lobby lobby, string dealerName, string bidderName);
 
     Task BidMade(Lobby lobby);
 }
