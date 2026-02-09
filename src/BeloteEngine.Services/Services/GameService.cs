@@ -39,34 +39,33 @@ public class GameService(
 
     public Player PlayerToSplitCards(Queue<Player> players)
     {
-        var splitter = players.Peek();
-        splitter.Splitter = true;
+        var splitter = RotatePlayerQueue(players);
         logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
         return splitter;
     }
-
     public Player PlayerToDealCards(Queue<Player> players)
     {
-        var splitter = players.Dequeue();
-        splitter.Splitter = false;
-        players.Enqueue(splitter);
-
-        var dealer = players.Peek();
-        dealer.Dealer = true;
+        var dealer = RotatePlayerQueue(players);
         logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
         return dealer;
     }
-
     public Player PlayerToStartAnnounceAndPlay(Queue<Player> players)
     {
-        var dealer = players.Dequeue();
-        dealer.Dealer = false;
-        players.Enqueue(dealer);
-
-        var announcer = players.Peek();
-        players.Enqueue(announcer);
+        var announcer = RotatePlayerQueue(players);
         logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
         return announcer;
+    }
+    public Player GetNextPlayer(Queue<Player> players)
+    {
+        var nextPlayer = RotatePlayerQueue(players);
+        logger.LogInformation("Next player to make an action: {PlayerName}", nextPlayer.Name);
+        return nextPlayer;
+    }
+    private static Player RotatePlayerQueue(Queue<Player> players)
+    {
+        var player = players.Dequeue();
+        players.Enqueue(player);
+        return player;
     }
 
     public Player GetNextBidder(Lobby lobby)
@@ -74,21 +73,10 @@ public class GameService(
         var tempPlayers = lobby.Game.SortedPlayers;
         while (tempPlayers.Peek().Name != lobby.Game.CurrentPlayer.Name)
         {
-            var tempPlayer = tempPlayers.Dequeue();
-            tempPlayers.Enqueue(tempPlayer);
+            RotatePlayerQueue(tempPlayers);
         }
-        var currPlayer = tempPlayers.Dequeue();
-        tempPlayers.Enqueue(currPlayer);
-        var nextPlayer = tempPlayers.Dequeue();
+        var nextPlayer = RotatePlayerQueue(tempPlayers); // Move to the next player after the current bidder
         logger.LogInformation("Next player to bid {PlayerName}", nextPlayer.Name);
-        return nextPlayer;
-    }
-
-    public Player GetNextPlayer(Queue<Player> players)
-    {
-        var nextPlayer = players.Dequeue();
-        players.Enqueue(nextPlayer);
-        logger.LogInformation("Next player to make an action: {PlayerName}", nextPlayer.Name);
         return nextPlayer;
     }
 
@@ -208,7 +196,7 @@ public class GameService(
         {
             // Player passed
             lobby.Game.PassCounter++;
-            logger.LogInformation("Player {PlayerName} passed. Pass counter: {PassCounter}", 
+            logger.LogInformation("Player {PlayerName} passed. Pass counter: {PassCounter}",
                 playerName, lobby.Game.PassCounter);
         }
 

@@ -139,7 +139,7 @@ public class BeloteHub(
 
         gameService.GameInitializer(lobby);
         gameService.InitialPhase(lobby);
-        lobby.Game.Splitter = lobby.ConnectedPlayers.FirstOrDefault(p => p.Splitter);
+        lobby.Game.Splitter = lobby.Game.CurrentPlayer;
         lobby.UpdateActivity();
 
         logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
