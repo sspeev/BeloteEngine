@@ -8,7 +8,7 @@
         Diamonds = 3,
         Hearts = 4,
         Spades = 5,
-        WithoutAnnounce = 6,
-        AllAnnounce = 7
+        NoTrump = 6,
+        AllTrumps = 7
     }
 }

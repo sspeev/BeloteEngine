@@ -6,6 +6,7 @@ namespace BeloteEngine.Services.Contracts;
 public interface ILobbyService
 {
     Lobby CreateLobby(string lobbyName);
+    Lobby CreateLobby(string lobbyName, string ipAddress);
     JoinResult JoinLobby(Player player);
     bool LeaveLobby(Player player, int lobbyId);
     Lobby GetLobby(int lobbyId);

@@ -39,41 +39,44 @@ public class GameService(
 
     public Player PlayerToSplitCards(Queue<Player> players)
     {
-        var splitter = players.Peek();
-        splitter.Splitter = true;
+        var splitter = RotatePlayerQueue(players);
         logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
         return splitter;
     }
-
     public Player PlayerToDealCards(Queue<Player> players)
     {
-        var splitter = players.Dequeue();
-        splitter.Splitter = false;
-        players.Enqueue(splitter);
-
-        var dealer = players.Peek();
-        dealer.Dealer = true;
+        var dealer = RotatePlayerQueue(players);
         logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
         return dealer;
     }
-
     public Player PlayerToStartAnnounceAndPlay(Queue<Player> players)
     {
-        var dealer = players.Dequeue();
-        dealer.Dealer = false;
-        players.Enqueue(dealer);
-
-        var announcer = players.Peek();
-        players.Enqueue(announcer);
+        var announcer = RotatePlayerQueue(players);
         logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
         return announcer;
     }
-
     public Player GetNextPlayer(Queue<Player> players)
     {
-        var nextPlayer = players.Dequeue();
-        players.Enqueue(nextPlayer);
+        var nextPlayer = RotatePlayerQueue(players);
         logger.LogInformation("Next player to make an action: {PlayerName}", nextPlayer.Name);
+        return nextPlayer;
+    }
+    private static Player RotatePlayerQueue(Queue<Player> players)
+    {
+        var player = players.Dequeue();
+        players.Enqueue(player);
+        return player;
+    }
+
+    public Player GetNextBidder(Lobby lobby)
+    {
+        var tempPlayers = lobby.Game.SortedPlayers;
+        while (tempPlayers.Peek().Name != lobby.Game.CurrentPlayer.Name)
+        {
+            RotatePlayerQueue(tempPlayers);
+        }
+        var nextPlayer = RotatePlayerQueue(tempPlayers); // Move to the next player after the current bidder
+        logger.LogInformation("Next player to bid {PlayerName}", nextPlayer.Name);
         return nextPlayer;
     }
 
@@ -147,23 +150,18 @@ public class GameService(
         return new Stack<Card>(firstHalf.Concat(secondHalf));
     }
 
-    public void GetPlayerCards(string playerNamem, Lobby lobby)
+    public void GetPlayerCards(Player player, Deck deck)
     {
-        var deck = lobby.Game.Deck.Cards;
-
-        foreach (var player in lobby.ConnectedPlayers)
+        for (int i = 1; i <= 8; i++)
         {
-            for (int i = 0; i < 4; i++)
+            if (deck.Cards.TryPop(out var card))
             {
-                if (deck.TryPop(out var card))
-                {
-                    player.Hand.Add(card);
-                }
+                player.Hand.Add(card);
             }
         }
     }
 
-    public void MakeBid(string playerName, string bid, Lobby lobby)
+    public Player MakeBid(string playerName, string bid, Lobby lobby)
     {
         var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
             ?? throw new ArgumentException($"Player {playerName} not found in the lobby.");
@@ -174,18 +172,41 @@ public class GameService(
         }
         player.AnnounceOffer = announce;
 
-        if (lobby.Game.CurrentAnnounce != Pass)
+        // Check if the player is passing or making a real bid
+        if (announce != Pass)
         {
-            if (lobby.Game.CurrentAnnounce < player.AnnounceOffer)
+            // Player made a real bid - check if it's higher than current announce
+            if (lobby.Game.CurrentAnnounce != None && lobby.Game.CurrentAnnounce < announce)
             {
-                logger.LogInformation("Current announce updated to: {Announce}", player.AnnounceOffer);
-                lobby.Game.CurrentAnnounce = player.AnnounceOffer;
-
+                logger.LogInformation("Current announce updated to: {Announce}", announce);
+                lobby.Game.CurrentAnnounce = announce;
             }
-            else throw new InvalidOperationException("Current announce cannot be lower than the previous one!");
+            else if (lobby.Game.CurrentAnnounce == None)
+            {
+                // First real bid
+                logger.LogInformation("First announce set to: {Announce}", announce);
+                lobby.Game.CurrentAnnounce = announce;
+            }
+            else
+            {
+                throw new InvalidOperationException("Your bid must be higher than the current announce!");
+            }
         }
-        else lobby.Game.PassCounter++;
+        else
+        {
+            // Player passed
+            lobby.Game.PassCounter++;
+            logger.LogInformation("Player {PlayerName} passed. Pass counter: {PassCounter}",
+                playerName, lobby.Game.PassCounter);
+        }
+
         logger.LogInformation("Player {PlayerName} made a bid: {Bid}", playerName, bid);
+
+        // Get the next player who should bid (without modifying the SortedPlayers queue)
+        var nextPlayer = GetNextBidder(lobby);
+        lobby.Game.CurrentPlayer = nextPlayer;
+
+        return nextPlayer;
 
         //THIS LOGIC WILL BE MOVED ON THE CLIENT SIDE
         //if (lobby.Game.PassCounter == 4)
