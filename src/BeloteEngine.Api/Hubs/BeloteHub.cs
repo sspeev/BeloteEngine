@@ -68,7 +68,7 @@ public class BeloteHub(
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{request.LobbyId}");
         logger.LogInformation("Player {PlayerName} joined lobby {LobbyId}", request.PlayerName, request.LobbyId);
-        
+
         var updatedLobby = lobbyService.GetLobby(request.LobbyId);
         await Clients.Group($"Lobby_{request.LobbyId}")
             .PlayerJoined(updatedLobby);
@@ -205,5 +205,45 @@ public class BeloteHub(
             playerName, bid, lobbyId, nextPlayer.Name);
 
         await Clients.Group($"Lobby_{lobbyId}").BidMade(lobby);
+    }
+
+    public async Task ResetGame(int lobbyId)
+    {
+        var lobby = lobbyService.GetLobby(lobbyId)
+            ?? throw new HubException($"Lobby {lobbyId} not found");
+
+        // Validate caller is in the lobby
+        var callingPlayer = lobby.ConnectedPlayers
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
+
+        if (callingPlayer == null)
+            throw new HubException("You are not in this lobby");
+
+        gameService.GameReset(lobby);
+        lobby.UpdateActivity();
+        
+        logger.LogInformation("Game reset in lobby {LobbyId}", lobbyId);
+        await Clients.Group($"Lobby_{lobbyId}").GameRestarted(lobby);
+    }
+
+    public async Task Gameplay(int lobbyId)
+    {
+        var lobby = lobbyService.GetLobby(lobbyId)
+            ?? throw new HubException($"Lobby {lobbyId} not found");
+
+        // Validate caller is in the lobby
+        var callingPlayer = lobby.ConnectedPlayers
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
+
+        if (callingPlayer == null)
+            throw new HubException("You are not in this lobby");
+
+        lobby.GamePhase = "playing";
+        lobby.Game.CurrentPlayer = lobby.Game.Starter;
+        //combinations
+        lobby.UpdateActivity();
+        logger.LogInformation("Gameplay started in lobby {LobbyId}", lobbyId);
+
+        await Clients.Group($"Lobby_{lobbyId}").Gameplay(lobby);
     }
 }

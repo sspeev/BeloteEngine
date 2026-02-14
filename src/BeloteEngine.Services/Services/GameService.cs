@@ -26,7 +26,11 @@ public class GameService(
         ValidateLobby(lobby);
 
         lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
-        lobby.Game.SortedPlayers = InitSortedPlayers(lobby.Game.Teams);
+
+        // Initialize both queues
+        lobby.Game.RoundQueue = InitSortedPlayers(lobby.Game.Teams);
+        lobby.Game.SortedPlayers = new Queue<Player>(lobby.Game.RoundQueue); // Copy for gameplay
+
         lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
         lobby.GamePhase = "splitting";
         logger.LogInformation("Current player to split cards: {PlayerName}", lobby.Game.CurrentPlayer.Name);
@@ -34,7 +38,7 @@ public class GameService(
 
     public Game Gameplay(Lobby lobby)
     {
-        throw new NotImplementedException();
+        throw new NotImplementedException("Gameplay logic is not implemented yet.");
     }
 
     public Player PlayerToSplitCards(Queue<Player> players)
@@ -71,10 +75,6 @@ public class GameService(
     public Player GetNextBidder(Lobby lobby)
     {
         var tempPlayers = lobby.Game.SortedPlayers;
-        while (tempPlayers.Peek().Name != lobby.Game.CurrentPlayer.Name)
-        {
-            RotatePlayerQueue(tempPlayers);
-        }
         var nextPlayer = RotatePlayerQueue(tempPlayers); // Move to the next player after the current bidder
         logger.LogInformation("Next player to bid {PlayerName}", nextPlayer.Name);
         return nextPlayer;
@@ -180,6 +180,7 @@ public class GameService(
             {
                 logger.LogInformation("Current announce updated to: {Announce}", announce);
                 lobby.Game.CurrentAnnounce = announce;
+                lobby.Game.PassCounter = 0;
             }
             else if (lobby.Game.CurrentAnnounce == None)
             {
@@ -210,11 +211,38 @@ public class GameService(
 
     public Game GameReset(Lobby lobby)
     {
+        ValidateLobby(lobby);
+
         var game = lobby.Game;
+
+        // Reset bidding state
         game.CurrentAnnounce = None;
         game.PassCounter = 0;
 
-        InitialPhase(lobby);
+        // Clear player hands for new deal
+        foreach (var player in lobby.ConnectedPlayers)
+        {
+            player.Hand.Clear();
+            player.AnnounceOffer = None;
+        }
+
+        // Create a new deck for the new round
+        game.Deck = new Deck();
+        game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
+
+        // Advance the RoundQueue clockwise for next round
+        // This rotates: P1 → P2 → P3 → P4 → P1
+        RotatePlayerQueue(game.RoundQueue);
+
+        // Rebuild SortedPlayers from RoundQueue for the new round
+        game.SortedPlayers = new Queue<Player>(game.RoundQueue);
+
+        // Set the current player to the splitter (first in queue)
+        game.CurrentPlayer = PlayerToSplitCards(game.SortedPlayers);
+        lobby.GamePhase = "splitting";
+
+        logger.LogInformation("Game reset in lobby. New splitter: {PlayerName}", game.CurrentPlayer.Name);
+
         return game;
     }
 

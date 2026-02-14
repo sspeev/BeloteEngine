@@ -8,6 +8,7 @@ namespace BeloteEngine.Data.Entities.Models
         public Team[] Teams { get; init; } = new Team[2];
 
         public Queue<Player> SortedPlayers { get; set; } = new();
+        public Queue<Player> RoundQueue { get; set; } = new(); // Tracks round rotation
         public Deck Deck { get; set; } = new();
 
         public void SetPointsOnCards()
