@@ -87,7 +87,7 @@ jobs:
           docker compose -f compose.yaml up -d
           sleep 15
           docker compose -f compose.yaml ps
-          docker compose -f compose.yaml logs backend
+          docker compose -f compose.yaml logs dev
       
       # Check if backend is responding (optional - add health endpoint first)
       # - name: Health check
