@@ -236,7 +236,14 @@ public class BeloteHub(
             .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
             ?? throw new HubException("You are not in this lobby");
 
-        lobby.Game.CurrentPlayer = lobby.Game.Starter;
+        // Ensure the starting player is determined server-side before starting gameplay
+        if (lobby.Game.Starter == null)
+        {
+            lobby.Game.Starter = callingPlayer;
+        }
+
+        lobby.Game.CurrentPlayer = lobby.Game.Starter ?? callingPlayer;
+
         gameService.Gameplay(lobby);
         //combinations
         lobby.UpdateActivity();

@@ -136,6 +136,8 @@ namespace BeloteEngine.Data.Entities.Models
         public Announces CurrentAnnounce { get; set; } = Announces.None;
 
         public Player CurrentPlayer { get; set; } = null!;
+        public Round? CurrentRound { get; set; }
+        public Trick? CurrentTrick { get; set; }
 
         public Player Splitter { get; set; } = null!;
 
@@ -147,7 +149,7 @@ namespace BeloteEngine.Data.Entities.Models
 
         public Player? ContractPlayer { get; set; }
 
-        public Round? CurrentRound { get; set; }
+
 
         public int PassCounter { get; set; }
     }
