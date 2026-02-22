@@ -247,13 +247,14 @@ public class GameService(
 
     private static Team GetAnnouncingTeam(Game game)
     {
-        var currentBidder = game.CurrentPlayer;
-        if (game.Teams[0].Players.Contains(currentBidder))
+        var contractPlayer = game.ContractPlayer
+            ?? throw new InvalidOperationException("No contract player has been set.");
+        if (game.Teams[0].Players.Contains(contractPlayer))
             return game.Teams[0];
-        else if (game.Teams[1].Players.Contains(currentBidder))
+        else if (game.Teams[1].Players.Contains(contractPlayer))
             return game.Teams[1];
 
-        throw new InvalidOperationException("Current bidder is not part of any team.");
+        throw new InvalidOperationException("Contract player is not part of any team.");
     }
 
     public void GetPlayerCards(Player player, Deck deck)
@@ -286,6 +287,7 @@ public class GameService(
             {
                 logger.LogInformation("Current announce updated to: {Announce}", announce);
                 lobby.Game.CurrentAnnounce = announce;
+                lobby.Game.ContractPlayer = player;
                 lobby.Game.PassCounter = 0;
             }
             else if (lobby.Game.CurrentAnnounce == None)
@@ -293,6 +295,7 @@ public class GameService(
                 // First real bid
                 logger.LogInformation("First announce set to: {Announce}", announce);
                 lobby.Game.CurrentAnnounce = announce;
+                lobby.Game.ContractPlayer = player;
             }
             else
             {
@@ -338,6 +341,7 @@ public class GameService(
         // Reset bidding state
         game.CurrentAnnounce = None;
         game.PassCounter = 0;
+        game.ContractPlayer = null;
 
         // Clear player hands for new deal
         foreach (var player in lobby.ConnectedPlayers)
