@@ -154,8 +154,8 @@ public class GameService(
         return player;
     }
 
-    private static bool IsOnTeam(Player player, Team team) => 
-        team.Players.Contains(player);
+    private static bool IsOnTeam(Player player, Team team) =>
+        team.Players.Any(p => p.Name == player.Name);
     
     private static void SetCurrentPlayerTo(Game game, Player player)
     {
