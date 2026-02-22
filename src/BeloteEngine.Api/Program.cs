@@ -78,7 +78,10 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            policy.WithOrigins("https://yourdomain.com", "https://www.yourdomain.com")
+            var allowedOrigins = builder.Configuration["AllowedOrigins"]
+                ?? throw new InvalidOperationException("AllowedOrigins is not configured.");
+
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
