@@ -68,7 +68,7 @@ public class BeloteHub(
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{request.LobbyId}");
         logger.LogInformation("Player {PlayerName} joined lobby {LobbyId}", request.PlayerName, request.LobbyId);
-        
+
         var updatedLobby = lobbyService.GetLobby(request.LobbyId);
         await Clients.Group($"Lobby_{request.LobbyId}")
             .PlayerJoined(updatedLobby);
@@ -205,5 +205,77 @@ public class BeloteHub(
             playerName, bid, lobbyId, nextPlayer.Name);
 
         await Clients.Group($"Lobby_{lobbyId}").BidMade(lobby);
+    }
+
+    public async Task ResetGame(int lobbyId)
+    {
+        var lobby = lobbyService.GetLobby(lobbyId)
+            ?? throw new HubException($"Lobby {lobbyId} not found");
+
+        // Validate caller is in the lobby
+        var callingPlayer = lobby.ConnectedPlayers
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
+
+        if (callingPlayer == null)
+            throw new HubException("You are not in this lobby");
+
+        gameService.GameReset(lobby);
+        lobby.UpdateActivity();
+        
+        logger.LogInformation("Game reset in lobby {LobbyId}", lobbyId);
+        await Clients.Group($"Lobby_{lobbyId}").GameRestarted(lobby);
+    }
+
+    public async Task Gameplay(int lobbyId)
+    {
+        var lobby = lobbyService.GetLobby(lobbyId)
+            ?? throw new HubException($"Lobby {lobbyId} not found");
+
+        // Validate caller is in the lobby
+        var callingPlayer = lobby.ConnectedPlayers
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
+            ?? throw new HubException("You are not in this lobby");
+
+        // Ensure the starting player is determined server-side before starting gameplay
+        if (lobby.Game.Starter == null)
+        {
+            lobby.Game.Starter = callingPlayer;
+        }
+
+        lobby.Game.CurrentPlayer = lobby.Game.Starter ?? callingPlayer;
+
+        gameService.Gameplay(lobby);
+        //combinations
+        lobby.UpdateActivity();
+        logger.LogInformation("Gameplay started in lobby {LobbyId}", lobbyId);
+
+        await Clients.Group($"Lobby_{lobbyId}").Gameplay(lobby);
+    }
+
+    public async Task PlayCard(int lobbyId, string playerName, Card card)
+    {
+        var lobby = lobbyService.GetLobby(lobbyId)
+            ?? throw new HubException($"Lobby {lobbyId} not found");
+        // Validate the caller owns this player
+        var callingPlayer = lobby.ConnectedPlayers
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
+            ?? throw new HubException("You are not in this lobby");
+        if (callingPlayer.Name != playerName)
+        {
+            logger.LogWarning("Player {ActualName} tried to play as {FakeName}", callingPlayer.Name, playerName);
+            throw new HubException("You can only play cards for yourself");
+        }
+        // Validate it's this player's turn to play
+        if (lobby.Game.CurrentPlayer?.Name != playerName)
+        {
+            logger.LogWarning("Player {PlayerName} tried to play out of turn. Current player is {CurrentPlayer}",
+                playerName, lobby.Game.CurrentPlayer?.Name);
+            throw new HubException("It's not your turn to play");
+        }
+        gameService.PlayCard(playerName, card, lobby);
+        lobby.UpdateActivity();
+        logger.LogInformation("Player {PlayerName} played card {Card} in lobby {LobbyId}",
+            playerName, $"{card.Rank} of {card.Suit}", lobbyId);
+        await Clients.Group($"Lobby_{lobbyId}").CardPlayed(lobby);
     }
 }

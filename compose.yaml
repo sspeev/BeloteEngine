@@ -21,7 +21,7 @@
     container_name: BeloteEngine-prod
     image: beloteengine:prod
     ports:
-      - "8081:8081"
+      - "8082:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
 networks:

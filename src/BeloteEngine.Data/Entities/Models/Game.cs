@@ -8,6 +8,7 @@ namespace BeloteEngine.Data.Entities.Models
         public Team[] Teams { get; init; } = new Team[2];
 
         public Queue<Player> SortedPlayers { get; set; } = new();
+        public Queue<Player> RoundQueue { get; set; } = new(); // Tracks round rotation
         public Deck Deck { get; set; } = new();
 
         public void SetPointsOnCards()
@@ -135,6 +136,8 @@ namespace BeloteEngine.Data.Entities.Models
         public Announces CurrentAnnounce { get; set; } = Announces.None;
 
         public Player CurrentPlayer { get; set; } = null!;
+        public Round? CurrentRound { get; set; }
+        public Trick? CurrentTrick { get; set; }
 
         public Player Splitter { get; set; } = null!;
 
@@ -143,6 +146,10 @@ namespace BeloteEngine.Data.Entities.Models
         public Player Announcer { get; set; } = null!;
 
         public Player Starter { get; set; } = null!;
+
+        public Player? ContractPlayer { get; set; }
+
+
 
         public int PassCounter { get; set; }
     }

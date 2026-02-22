@@ -1,13 +1,19 @@
 ﻿using BeloteEngine.Data.Entities.Enums;
 using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Models;
+using BeloteEngine.Services.Rules;
 using Microsoft.Extensions.Logging;
 using static BeloteEngine.Data.Entities.Enums.Announces;
 
 namespace BeloteEngine.Services.Services;
 
 public class GameService(
-      ILogger<GameService> logger)
+      ILogger<GameService> logger
+    , ITrickEvaluator trickEvaluator
+    , IPlayValidator playValidator
+    , IScoreCalculator scoreCalculator
+    )
     : IGameService
 {
     private static void ValidateLobby(Lobby lobby)
@@ -26,7 +32,11 @@ public class GameService(
         ValidateLobby(lobby);
 
         lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
-        lobby.Game.SortedPlayers = InitSortedPlayers(lobby.Game.Teams);
+
+        // Initialize both queues
+        lobby.Game.RoundQueue = InitSortedPlayers(lobby.Game.Teams);
+        lobby.Game.SortedPlayers = new Queue<Player>(lobby.Game.RoundQueue); // Copy for gameplay
+
         lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
         lobby.GamePhase = "splitting";
         logger.LogInformation("Current player to split cards: {PlayerName}", lobby.Game.CurrentPlayer.Name);
@@ -34,7 +44,83 @@ public class GameService(
 
     public Game Gameplay(Lobby lobby)
     {
-        throw new NotImplementedException();
+        // Start the playing phase — initialize round
+        var game = lobby.Game;
+        lobby.Game.CurrentPlayer = lobby.Game.Starter;
+        game.CurrentRound = new Round
+        {
+            Trump = game.CurrentAnnounce,
+            AnnouncingTeam = GetAnnouncingTeam(game)
+        };
+
+        game.SetPointsOnCards();
+        lobby.GamePhase = "playing";
+
+        return game;
+    }
+
+    public PlayCardResult PlayCard(string playerName, Card card, Lobby lobby)
+    {
+        var game = lobby.Game;
+        var round = game.CurrentRound
+            ?? throw new InvalidOperationException("No active round.");
+
+        var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
+            ?? throw new ArgumentException($"Player {playerName} not found.");
+
+        // Validate it's this player's turn
+        if (game.CurrentPlayer.Name != playerName)
+            throw new InvalidOperationException("It's not your turn.");
+
+        // Validate the card play
+        if (!playValidator.IsValidPlay(card, player, round.CurrentTrick, round.Trump))
+            throw new InvalidOperationException("Invalid card play.");
+
+        // Play the card
+        round.CurrentTrick.PlayedCards.Add((player, card));
+        player.Hand.RemoveAll(c => c.Suit == card.Suit && c.Rank == card.Rank);
+
+        // Check if trick is complete
+        if (round.CurrentTrick.IsComplete)
+        {
+            var trickWinner = trickEvaluator.DetermineWinner(round.CurrentTrick, round.Trump);
+            round.CurrentTrick.Winner = trickWinner;
+
+            // Accumulate points per team
+            int trickPoints = round.CurrentTrick.PointsValue;
+            if (IsOnTeam(trickWinner, game.Teams[0]))
+                round.Team1TrickPoints += trickPoints;
+            else
+                round.Team2TrickPoints += trickPoints;
+
+            round.CompletedTricks.Add(round.CurrentTrick);
+
+            if (round.IsComplete)
+            {
+                // Round over — calculate scores
+                var (t1, t2) = scoreCalculator.CalculateRoundScore(round, game.Teams);
+                game.Teams[0].Score += t1;
+                game.Teams[1].Score += t2;
+                lobby.GamePhase = "scoring";
+
+                return new PlayCardResult
+                {
+                    TrickWinner = trickWinner,
+                    RoundComplete = true,
+                    GameOver = IsGameOver(game.Teams[0].Score, game.Teams[1].Score)
+                };
+            }
+
+            // Start new trick — trick winner leads
+            round.CurrentTrick = new Trick();
+            SetCurrentPlayerTo(game, trickWinner);
+
+            return new PlayCardResult { TrickWinner = trickWinner };
+        }
+
+        // Trick not complete — next player
+        game.CurrentPlayer = GetNextPlayer(game.RoundQueue);
+        return new PlayCardResult();
     }
 
     public Player PlayerToSplitCards(Queue<Player> players)
@@ -68,13 +154,22 @@ public class GameService(
         return player;
     }
 
+    private static bool IsOnTeam(Player player, Team team) =>
+        team.Players.Any(p => p.Name == player.Name);
+    
+    private static void SetCurrentPlayerTo(Game game, Player player)
+    {
+        // Rotate the RoundQueue until the specified player is at the front
+        while (game.RoundQueue.Peek().Name != player.Name)
+        {
+            RotatePlayerQueue(game.RoundQueue);
+        }
+        game.CurrentPlayer = game.RoundQueue.Peek();
+    }
+
     public Player GetNextBidder(Lobby lobby)
     {
         var tempPlayers = lobby.Game.SortedPlayers;
-        while (tempPlayers.Peek().Name != lobby.Game.CurrentPlayer.Name)
-        {
-            RotatePlayerQueue(tempPlayers);
-        }
         var nextPlayer = RotatePlayerQueue(tempPlayers); // Move to the next player after the current bidder
         logger.LogInformation("Next player to bid {PlayerName}", nextPlayer.Name);
         return nextPlayer;
@@ -150,6 +245,18 @@ public class GameService(
         return new Stack<Card>(firstHalf.Concat(secondHalf));
     }
 
+    private static Team GetAnnouncingTeam(Game game)
+    {
+        var contractPlayer = game.ContractPlayer
+            ?? throw new InvalidOperationException("No contract player has been set.");
+        if (game.Teams[0].Players.Contains(contractPlayer))
+            return game.Teams[0];
+        else if (game.Teams[1].Players.Contains(contractPlayer))
+            return game.Teams[1];
+
+        throw new InvalidOperationException("Contract player is not part of any team.");
+    }
+
     public void GetPlayerCards(Player player, Deck deck)
     {
         for (int i = 1; i <= 8; i++)
@@ -180,12 +287,15 @@ public class GameService(
             {
                 logger.LogInformation("Current announce updated to: {Announce}", announce);
                 lobby.Game.CurrentAnnounce = announce;
+                lobby.Game.ContractPlayer = player;
+                lobby.Game.PassCounter = 0;
             }
             else if (lobby.Game.CurrentAnnounce == None)
             {
                 // First real bid
                 logger.LogInformation("First announce set to: {Announce}", announce);
                 lobby.Game.CurrentAnnounce = announce;
+                lobby.Game.ContractPlayer = player;
             }
             else
             {
@@ -202,28 +312,77 @@ public class GameService(
 
         logger.LogInformation("Player {PlayerName} made a bid: {Bid}", playerName, bid);
 
-        // Get the next player who should bid (without modifying the SortedPlayers queue)
         var nextPlayer = GetNextBidder(lobby);
         lobby.Game.CurrentPlayer = nextPlayer;
 
         return nextPlayer;
-
-        //THIS LOGIC WILL BE MOVED ON THE CLIENT SIDE
-        //if (lobby.Game.PassCounter == 4)
-        //{
-        //    logger.LogInformation("All players passed. Resetting the game.");
-        //    lobby.Game = GameReset(lobby);
-        //}
-        //else Gameplay(lobby);
     }
+
+    //public Player PlayCard(string playerName, Card card, Lobby lobby)
+    //{
+    //    var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
+    //        ?? throw new ArgumentException($"Player {playerName} not found in the lobby.");
+    //    var cardToPlay = player.Hand.FirstOrDefault(c => c.Rank == card.Rank && c.Suit == card.Suit)
+    //        ?? throw new ArgumentException($"Card {card.Rank}{nameof(card.Suit).First()} not found in player's hand.");
+    //    // Remove the card from player's hand
+    //    player.Hand.Remove(cardToPlay);
+
+
+
+    //    logger.LogInformation($"Player {playerName} played card: {card.Rank}{nameof(card.Suit).First()}");
+    //}
 
     public Game GameReset(Lobby lobby)
     {
+        ValidateLobby(lobby);
+
         var game = lobby.Game;
+
+        // Reset bidding state
         game.CurrentAnnounce = None;
         game.PassCounter = 0;
 
-        InitialPhase(lobby);
+        // Reset round/trick state so no stale data is exposed after reset
+        game.CurrentRound = null;
+        game.CurrentTrick = null;
+
+        // Clear player hands for new deal
+        foreach (var player in lobby.ConnectedPlayers)
+        {
+            player.Hand.Clear();
+            player.AnnounceOffer = None;
+        }
+
+        // Create a new deck for the new round
+        game.Deck = new Deck();
+        game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
+
+        // Ensure RoundQueue is initialized; it may be null/empty if ResetGame
+        // is called before InitialPhase or after a lobby/game recreation.
+        if (game.RoundQueue == null || game.RoundQueue.Count == 0)
+        {
+            game.RoundQueue = new Queue<Player>();
+            foreach (var player in lobby.ConnectedPlayers)
+            {
+                game.RoundQueue.Enqueue(player);
+            }
+        }
+        else
+        {
+            // Advance the RoundQueue clockwise for next round
+            // This rotates: P1 → P2 → P3 → P4 → P1
+            RotatePlayerQueue(game.RoundQueue);
+        }
+
+        // Rebuild SortedPlayers from RoundQueue for the new round
+        game.SortedPlayers = new Queue<Player>(game.RoundQueue);
+
+        // Set the current player to the splitter (first in queue)
+        game.CurrentPlayer = PlayerToSplitCards(game.SortedPlayers);
+        lobby.GamePhase = "splitting";
+
+        logger.LogInformation("Game reset in lobby. New splitter: {PlayerName}", game.CurrentPlayer.Name);
+
         return game;
     }
 

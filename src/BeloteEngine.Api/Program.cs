@@ -1,5 +1,6 @@
 using BeloteEngine.Api.Hubs;
 using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Rules;
 using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json;
@@ -88,6 +89,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddSingleton<IConnectionLimiter, ConnectionLimiter>();
+builder.Services.AddSingleton<ITrickEvaluator, TrickEvaluator>();
+builder.Services.AddSingleton<IPlayValidator, PlayValidator>();
+builder.Services.AddSingleton<IScoreCalculator, ScoreCalculator>();
 builder.Services.AddSingleton<CachingService>();
 builder.Services.AddLogging(logging =>
 {
