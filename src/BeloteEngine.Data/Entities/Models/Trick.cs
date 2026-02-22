@@ -9,7 +9,7 @@ namespace BeloteEngine.Data.Entities.Models
     {
         public List<(Player Player, Card Card)> PlayedCards { get; set; } = [];
 
-        public Player Winner { get; set; } = null!;
+        public Player? Winner { get; set; }
 
         public Suit LeadSuit => PlayedCards.Count > 0 ? PlayedCards[0].Card.Suit : default;
 
