@@ -119,7 +119,7 @@ public class GameService(
         }
 
         // Trick not complete — next player
-        game.CurrentPlayer = GetNextPlayer(game.SortedPlayers);
+        game.CurrentPlayer = GetNextPlayer(game.RoundQueue);
         return new PlayCardResult();
     }
 
