@@ -350,9 +350,22 @@ public class GameService(
         game.Deck = new Deck();
         game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
 
-        // Advance the RoundQueue clockwise for next round
-        // This rotates: P1 → P2 → P3 → P4 → P1
-        RotatePlayerQueue(game.RoundQueue);
+        // Ensure RoundQueue is initialized; it may be null/empty if ResetGame
+        // is called before InitialPhase or after a lobby/game recreation.
+        if (game.RoundQueue == null || game.RoundQueue.Count == 0)
+        {
+            game.RoundQueue = new Queue<Player>();
+            foreach (var player in lobby.ConnectedPlayers)
+            {
+                game.RoundQueue.Enqueue(player);
+            }
+        }
+        else
+        {
+            // Advance the RoundQueue clockwise for next round
+            // This rotates: P1 → P2 → P3 → P4 → P1
+            RotatePlayerQueue(game.RoundQueue);
+        }
 
         // Rebuild SortedPlayers from RoundQueue for the new round
         game.SortedPlayers = new Queue<Player>(game.RoundQueue);
