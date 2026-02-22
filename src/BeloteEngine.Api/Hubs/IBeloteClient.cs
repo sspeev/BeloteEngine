@@ -22,4 +22,6 @@ public interface IBeloteClient
     Task Gameplay(Lobby lobby);
 
     Task GameRestarted(Lobby lobby);
+
+    Task CardPlayed(Lobby lobby);
 }

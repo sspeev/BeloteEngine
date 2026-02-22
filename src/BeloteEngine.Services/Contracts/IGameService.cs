@@ -1,4 +1,5 @@
 ﻿using BeloteEngine.Data.Entities.Models;
+using BeloteEngine.Services.Models;
 
 namespace BeloteEngine.Services.Contracts;
 
@@ -15,6 +16,7 @@ public interface IGameService
     public bool IsGameOver(int team1Score, int team2Score);
     void GetPlayerCards(Player player, Deck deck);
     Player MakeBid(string playerName, string bid, Lobby lobby);
+    PlayCardResult PlayCard(string playerName, Card card, Lobby lobby);
     Game GameReset(Lobby lobby);
     Game NextGame(Lobby lobby);
     Game Creator();

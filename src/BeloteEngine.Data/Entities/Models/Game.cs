@@ -145,7 +145,7 @@ namespace BeloteEngine.Data.Entities.Models
 
         public Player Starter { get; set; } = null!;
 
-        public Round? CurrentRound { get; set; }    
+        public Round? CurrentRound { get; set; }
 
         public int PassCounter { get; set; }
     }

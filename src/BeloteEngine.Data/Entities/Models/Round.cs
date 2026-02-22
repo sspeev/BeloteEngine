@@ -9,7 +9,6 @@ namespace BeloteEngine.Data.Entities.Models
     {
         public Announces Trump { get; set; }
 
-        /// <summary>The team that won the bidding (announced the trump).</summary>
         public Team AnnouncingTeam { get; set; } = null!;
 
         public Trick CurrentTrick { get; set; } = new();

@@ -15,7 +15,7 @@ public class PlayValidator : IPlayValidator
     {
         // First card in trick — can play anything
         if (currentTrick.PlayedCards.Count == 0)
-            return player.Hand.ToList();
+            return player.Hand;
 
         var leadSuit = currentTrick.LeadSuit;
         var trumpSuit = GetTrumpSuit(trump);
@@ -45,7 +45,7 @@ public class PlayValidator : IPlayValidator
         var sameSuit = hand.Where(c => c.Suit == leadSuit).ToList();
 
         if (sameSuit.Count == 0)
-            return hand.ToList(); // Can't follow suit
+            return hand; // Can't follow suit
 
         // Must play higher if possible (every suit is trump in AllTrumps)
         var highestPlayed = currentTrick.PlayedCards

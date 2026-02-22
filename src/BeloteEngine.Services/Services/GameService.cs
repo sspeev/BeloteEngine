@@ -1,13 +1,19 @@
 ﻿using BeloteEngine.Data.Entities.Enums;
 using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
+using BeloteEngine.Services.Models;
+using BeloteEngine.Services.Rules;
 using Microsoft.Extensions.Logging;
 using static BeloteEngine.Data.Entities.Enums.Announces;
 
 namespace BeloteEngine.Services.Services;
 
 public class GameService(
-      ILogger<GameService> logger)
+      ILogger<GameService> logger
+    , ITrickEvaluator trickEvaluator
+    , IPlayValidator playValidator
+    , IScoreCalculator scoreCalculator
+    )
     : IGameService
 {
     private static void ValidateLobby(Lobby lobby)
@@ -38,7 +44,83 @@ public class GameService(
 
     public Game Gameplay(Lobby lobby)
     {
-        throw new NotImplementedException("Gameplay logic is not implemented yet.");
+        // Start the playing phase — initialize round
+        var game = lobby.Game;
+        lobby.Game.CurrentPlayer = lobby.Game.Starter;
+        game.CurrentRound = new Round
+        {
+            Trump = game.CurrentAnnounce,
+            AnnouncingTeam = GetAnnouncingTeam(game)
+        };
+
+        game.SetPointsOnCards();
+        lobby.GamePhase = "playing";
+
+        return game;
+    }
+
+    public PlayCardResult PlayCard(string playerName, Card card, Lobby lobby)
+    {
+        var game = lobby.Game;
+        var round = game.CurrentRound
+            ?? throw new InvalidOperationException("No active round.");
+
+        var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
+            ?? throw new ArgumentException($"Player {playerName} not found.");
+
+        // Validate it's this player's turn
+        if (game.CurrentPlayer.Name != playerName)
+            throw new InvalidOperationException("It's not your turn.");
+
+        // Validate the card play
+        if (!playValidator.IsValidPlay(card, player, round.CurrentTrick, round.Trump))
+            throw new InvalidOperationException("Invalid card play.");
+
+        // Play the card
+        round.CurrentTrick.PlayedCards.Add((player, card));
+        player.Hand.RemoveAll(c => c.Suit == card.Suit && c.Rank == card.Rank);
+
+        // Check if trick is complete
+        if (round.CurrentTrick.IsComplete)
+        {
+            var trickWinner = trickEvaluator.DetermineWinner(round.CurrentTrick, round.Trump);
+            round.CurrentTrick.Winner = trickWinner;
+
+            // Accumulate points per team
+            int trickPoints = round.CurrentTrick.PointsValue;
+            if (IsOnTeam(trickWinner, game.Teams[0]))
+                round.Team1TrickPoints += trickPoints;
+            else
+                round.Team2TrickPoints += trickPoints;
+
+            round.CompletedTricks.Add(round.CurrentTrick);
+
+            if (round.IsComplete)
+            {
+                // Round over — calculate scores
+                var (t1, t2) = scoreCalculator.CalculateRoundScore(round, game.Teams);
+                game.Teams[0].Score += t1;
+                game.Teams[1].Score += t2;
+                lobby.GamePhase = "scoring";
+
+                return new PlayCardResult
+                {
+                    TrickWinner = trickWinner,
+                    RoundComplete = true,
+                    GameOver = IsGameOver(game.Teams[0].Score, game.Teams[1].Score)
+                };
+            }
+
+            // Start new trick — trick winner leads
+            round.CurrentTrick = new Trick();
+            SetCurrentPlayerTo(game, trickWinner);
+
+            return new PlayCardResult { TrickWinner = trickWinner };
+        }
+
+        // Trick not complete — next player
+        game.CurrentPlayer = GetNextPlayer(game.SortedPlayers);
+        return new PlayCardResult();
     }
 
     public Player PlayerToSplitCards(Queue<Player> players)
@@ -70,6 +152,19 @@ public class GameService(
         var player = players.Dequeue();
         players.Enqueue(player);
         return player;
+    }
+
+    private static bool IsOnTeam(Player player, Team team) => 
+        team.Players.Contains(player);
+    
+    private static void SetCurrentPlayerTo(Game game, Player player)
+    {
+        // Rotate the RoundQueue until the specified player is at the front
+        while (game.RoundQueue.Peek().Name != player.Name)
+        {
+            RotatePlayerQueue(game.RoundQueue);
+        }
+        game.CurrentPlayer = game.RoundQueue.Peek();
     }
 
     public Player GetNextBidder(Lobby lobby)
@@ -150,6 +245,17 @@ public class GameService(
         return new Stack<Card>(firstHalf.Concat(secondHalf));
     }
 
+    private static Team GetAnnouncingTeam(Game game)
+    {
+        var currentBidder = game.CurrentPlayer;
+        if (game.Teams[0].Players.Contains(currentBidder))
+            return game.Teams[0];
+        else if (game.Teams[1].Players.Contains(currentBidder))
+            return game.Teams[1];
+
+        throw new InvalidOperationException("Current bidder is not part of any team.");
+    }
+
     public void GetPlayerCards(Player player, Deck deck)
     {
         for (int i = 1; i <= 8; i++)
@@ -208,6 +314,20 @@ public class GameService(
 
         return nextPlayer;
     }
+
+    //public Player PlayCard(string playerName, Card card, Lobby lobby)
+    //{
+    //    var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
+    //        ?? throw new ArgumentException($"Player {playerName} not found in the lobby.");
+    //    var cardToPlay = player.Hand.FirstOrDefault(c => c.Rank == card.Rank && c.Suit == card.Suit)
+    //        ?? throw new ArgumentException($"Card {card.Rank}{nameof(card.Suit).First()} not found in player's hand.");
+    //    // Remove the card from player's hand
+    //    player.Hand.Remove(cardToPlay);
+
+
+
+    //    logger.LogInformation($"Player {playerName} played card: {card.Rank}{nameof(card.Suit).First()}");
+    //}
 
     public Game GameReset(Lobby lobby)
     {
