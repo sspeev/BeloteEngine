@@ -60,7 +60,7 @@ jobs:
       # Test that the container starts successfully
       - name: Test container startup
         run: |
-          docker run -d --name test-container -p 8081:8081 beloteengine-prod:test
+          docker run -d --name test-container -p 8081:8081 beloteengine-prod:prod
           sleep 10
           docker ps | grep test-container
           docker logs test-container
