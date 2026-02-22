@@ -343,6 +343,9 @@ public class GameService(
         game.PassCounter = 0;
         game.ContractPlayer = null;
 
+        // Reset round/trick state so no stale data is exposed after reset
+        game.CurrentRound = null;
+        game.CurrentTrick = null;
         // Clear player hands for new deal
         foreach (var player in lobby.ConnectedPlayers)
         {
