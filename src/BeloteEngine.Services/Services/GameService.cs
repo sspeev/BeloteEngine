@@ -53,6 +53,9 @@ public class GameService(
             AnnouncingTeam = GetAnnouncingTeam(game)
         };
 
+        // Keep game.CurrentTrick in sync so clients can read lobby.game.currentTrick
+        game.CurrentTrick = game.CurrentRound.CurrentTrick;
+
         game.SetPointsOnCards();
         lobby.GamePhase = "playing";
 
@@ -76,9 +79,12 @@ public class GameService(
         if (!playValidator.IsValidPlay(card, player, round.CurrentTrick, round.Trump))
             throw new InvalidOperationException("Invalid card play.");
 
-        // Play the card
-        round.CurrentTrick.PlayedCards.Add((player, card));
+        // Play the card — add to the current trick and remove from hand
+        round.CurrentTrick.PlayedCards.Add(new PlayedCard(player, card));
         player.Hand.RemoveAll(c => c.Suit == card.Suit && c.Rank == card.Rank);
+
+        // Keep game.CurrentTrick in sync for client serialisation
+        game.CurrentTrick = round.CurrentTrick;
 
         // Check if trick is complete
         if (round.CurrentTrick.IsComplete)
@@ -111,14 +117,15 @@ public class GameService(
                 };
             }
 
-            // Start new trick — trick winner leads
+            // Start new trick — trick winner leads; sync game.CurrentTrick
             round.CurrentTrick = new Trick();
+            game.CurrentTrick = round.CurrentTrick;
             SetCurrentPlayerTo(game, trickWinner);
 
             return new PlayCardResult { TrickWinner = trickWinner };
         }
 
-        // Trick not complete — next player
+        // Trick not complete — advance to next player
         game.CurrentPlayer = GetNextPlayer(game.RoundQueue);
         return new PlayCardResult();
     }
@@ -296,6 +303,7 @@ public class GameService(
                 logger.LogInformation("First announce set to: {Announce}", announce);
                 lobby.Game.CurrentAnnounce = announce;
                 lobby.Game.ContractPlayer = player;
+                lobby.Game.PassCounter = 0;
             }
             else
             {

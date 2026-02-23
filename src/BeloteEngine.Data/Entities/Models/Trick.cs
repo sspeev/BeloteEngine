@@ -7,7 +7,7 @@ namespace BeloteEngine.Data.Entities.Models
     /// </summary>
     public class Trick
     {
-        public List<(Player Player, Card Card)> PlayedCards { get; set; } = [];
+        public List<PlayedCard> PlayedCards { get; set; } = [];
 
         public Player? Winner { get; set; }
 
