@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build production Docker image
-        run: docker build -f src/BeloteEngine.Api/Dockerfile -t beloteengine:prod .
+        run: docker build -t beloteengine:prod .
 
       - name: Test container starts and is healthy
         run: |
@@ -103,7 +103,6 @@ jobs:
           IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine
         run: |
           docker build \
-            -f src/BeloteEngine.Api/Dockerfile \
             -t $IMAGE:${{ github.sha }} \
             -t $IMAGE:latest \
             .

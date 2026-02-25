@@ -18,7 +18,7 @@
   prod:
     build:
       context: .
-      dockerfile: src/BeloteEngine.Api/Dockerfile
+      dockerfile: Dockerfile
     container_name: BeloteEngine-prod
     image: beloteengine:prod
     ports:
