@@ -1,0 +1,16 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/beloteengine:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/beloteengine:latest'
+      - '-f'
+      - 'src/BeloteEngine.Api/Dockerfile'
+      - '.'
+
+images:
+  - 'gcr.io/$PROJECT_ID/beloteengine:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/beloteengine:latest'
