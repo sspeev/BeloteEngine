@@ -1,102 +1,136 @@
-# This is the name that appears in GitHub Actions tab
-name: CI - BeloteEngine
+name: CI/CD - BeloteEngine
 
-# When should this workflow run?
 on:
   push:
-    branches: [ main ]  # Run on pushes to main
+    branches: [main]
   pull_request:
-    branches: [ main ]  # Run on PRs targeting main
+    branches: [main]
 
-# Define what jobs to run
+env:
+  GCP_REGION: europe-west1 # change to your preferred region
+  SERVICE_NAME: beloteengine
+
 jobs:
-  # Job 1: Build and Test
+  # ── Job 1: Build & Test ──────────────────────────────────────────────────────
   build-and-test:
-    # What type of machine to run on (GitHub provides this for free)
     runs-on: ubuntu-latest
-    
+
     steps:
-      # Step 1: Get your code from the repository
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      # Step 2: Install . NET SDK
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0'
-      
-      # Step 3: Restore dependencies
+          dotnet-version: "8.0"
+
       - name: Restore dependencies
-        run: dotnet restore BeloteEngine.sln
-      
-      # Step 4: Build the project
+        run: dotnet restore BeloteEngine.sln /p:SpaProxyLaunchEnabled=false
+
       - name: Build
-        run: dotnet build BeloteEngine.sln --configuration Release --no-restore
-      
-      # Step 5: Run tests
+        run: dotnet build BeloteEngine.sln --configuration Release --no-restore /p:SpaProxyLaunchEnabled=false
+
       - name: Run tests
         run: dotnet test BeloteEngine.sln --no-build --verbosity normal
-        # Note: This will pass even if you have no tests yet
-  
-  # Job 2: Build Production Docker Image
+
+  # ── Job 2: Build & verify production Docker image ────────────────────────────
   docker-build-production:
-    runs-on:  ubuntu-latest
-    needs: build-and-test  # Only run if build-and-test passes
-    
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      # Build production Docker image
+
       - name: Build production Docker image
+        run: docker build -f src/BeloteEngine.Api/Dockerfile -t beloteengine:prod .
+
+      - name: Test container starts and is healthy
         run: |
-          docker build -f src/BeloteEngine.Api/Dockerfile -t beloteengine-prod:prod .
-      
-      # Verify the image was built
-      - name: Verify Docker image
-        run: docker images | grep beloteengine-prod
-      
-      # Test that the container starts successfully
-      - name: Test container startup
-        run: |
-          docker run -d --name test-container -p 8081:8081 beloteengine-prod:prod
-          sleep 10
-          docker ps | grep test-container
+          docker run -d --name test-container \
+            -e ASPNETCORE_ENVIRONMENT=Production \
+            -e AllowedOrigins=http://localhost \
+            -e AllowedHosts="*" \
+            -p 8081:8081 \
+            beloteengine:prod
+
+          echo "Waiting for container to be healthy..."
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8081/health; then
+              echo "Container is healthy!"
+              break
+            fi
+            echo "Attempt $i/15 — not ready yet..."
+            sleep 2
+          done
+
           docker logs test-container
           docker stop test-container
           docker rm test-container
 
-  # Job 3: Build and Test Development Docker Setup
-  docker-build-development:
+  # ── Job 3: Push image & deploy to Google Cloud Run ───────────────────────────
+  deploy:
     runs-on: ubuntu-latest
-    needs: build-and-test
-    
+    needs: docker-build-production
+    # Only deploy on a real push to main — skip for pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      id-token: write # Required for Workload Identity Federation (keyless auth)
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      # Build development Docker image
-      - name: Build development Docker image
+
+      # Authenticate to Google Cloud using Workload Identity Federation (no JSON key needed)
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Authorize Docker to push to Artifact Registry
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      # Build + push the image tagged with the git SHA for traceability
+      - name: Build and push Docker image
+        env:
+          IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine
         run: |
-          docker build -f src/BeloteEngine.Api/DockerfileDev -t beloteengine-dev:dev .
-      
-      # Test with docker-compose
-      - name: Test with Docker Compose (Development)
-        run: |
-          docker compose -f compose.yaml up -d
-          sleep 15
-          docker compose -f compose.yaml ps
-          docker compose -f compose.yaml logs dev
-      
-      # Check if backend is responding (optional - add health endpoint first)
-      # - name: Health check
-      #   run: |
-      #     curl -f http://localhost:8081/health || exit 1
-      
-      # Cleanup
-      - name: Cleanup
-        if: always()
-        run: |
-          docker compose -f compose.yaml down
-          docker system prune -f
+          docker build \
+            -f src/BeloteEngine.Api/Dockerfile \
+            -t $IMAGE:${{ github.sha }} \
+            -t $IMAGE:latest \
+            .
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+      # Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine:${{ github.sha }}
+          env_vars: |
+            ASPNETCORE_ENVIRONMENT=Production
+            AllowedOrigins=https://online-belote-sspeevs-projects.vercel.app
+            AllowedHosts=*
+          flags: |
+            --allow-unauthenticated
+            --port=8081
+            --min-instances=0
+            --max-instances=10
+            --memory=256Mi
+            --cpu=1
+            --timeout=300
+            --session-affinity
+
+      - name: Show deployed URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

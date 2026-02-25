@@ -137,7 +137,13 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Skip HTTPS redirection inside containers — TLS is terminated by the reverse proxy.
+// DOTNET_RUNNING_IN_CONTAINER is set automatically by the .NET Docker base image.
+var isRunningInContainer = app.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER");
+if (!isRunningInContainer)
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowFrontend");
 app.UseRouting();
 app.UseAuthorization();
