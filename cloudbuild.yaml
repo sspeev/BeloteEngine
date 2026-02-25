@@ -7,8 +7,6 @@ steps:
       - 'gcr.io/$PROJECT_ID/beloteengine:$COMMIT_SHA'
       - '-t'
       - 'gcr.io/$PROJECT_ID/beloteengine:latest'
-      - '-f'
-      - 'src/BeloteEngine.Api/Dockerfile'
       - '.'
 
 images:
