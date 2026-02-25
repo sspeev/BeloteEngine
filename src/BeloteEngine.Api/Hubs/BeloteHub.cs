@@ -272,10 +272,26 @@ public class BeloteHub(
                 playerName, lobby.Game.CurrentPlayer?.Name);
             throw new HubException("It's not your turn to play");
         }
-        gameService.PlayCard(playerName, card, lobby);
+        PlayCardResult result;
+        try
+        {
+            result = gameService.PlayCard(playerName, card, lobby);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+
         lobby.UpdateActivity();
-        logger.LogInformation("Player {PlayerName} played card {Card} in lobby {LobbyId}",
-            playerName, $"{card.Rank} of {card.Suit}", lobbyId);
+        logger.LogInformation(
+            "Player {PlayerName} played {Card} in lobby {LobbyId}. TrickWinner={TrickWinner} RoundComplete={RoundComplete} GameOver={GameOver}",
+            playerName, $"{card.Rank} of {card.Suit}", lobbyId,
+            result.TrickWinner?.Name ?? "none", result.RoundComplete, result.GameOver);
+
         await Clients.Group($"Lobby_{lobbyId}").CardPlayed(lobby);
     }
 }

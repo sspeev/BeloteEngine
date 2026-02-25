@@ -14,6 +14,7 @@
     restart: unless-stopped
     networks:
       - belote-network
+
   prod:
     build:
       context: .
@@ -24,7 +25,12 @@
       - "8082:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - AllowedOrigins=${ALLOWED_ORIGINS:-https://online-belote-cx6wcxjme-sspeevs-projects.vercel.app}
+      - AllowedHosts=${ALLOWED_HOSTS:-*}
+    restart: unless-stopped
+    networks:
+      - belote-network
+
 networks:
   belote-network:
-    driver:  bridge
-    
+    driver: bridge

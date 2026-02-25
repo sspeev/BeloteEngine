@@ -361,3 +361,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local environment files (Docker Compose / secrets — never commit these)
+.env
+.env.*
+!.env.example
+
+# JetBrains IDEs (Rider, IntelliJ)
+.idea/
