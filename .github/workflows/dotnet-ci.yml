@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  GCP_REGION: europe-west1 # change to your preferred region
+  GCP_REGION: europe-west8
   SERVICE_NAME: beloteengine
 
 jobs:
