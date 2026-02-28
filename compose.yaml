@@ -25,7 +25,7 @@
       - "8082:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - AllowedOrigins=${ALLOWED_ORIGINS:-https://online-belote-cx6wcxjme-sspeevs-projects.vercel.app}
+      - AllowedOrigins=${ALLOWED_ORIGINS:-http://localhost:3000}
       - AllowedHosts=${ALLOWED_HOSTS:-*}
     restart: unless-stopped
     networks:
