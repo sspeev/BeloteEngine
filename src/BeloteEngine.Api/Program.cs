@@ -118,6 +118,10 @@ var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Starting Belote Engine API v1.0...");
 logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
 
+// Skip HTTPS redirection inside containers — TLS is terminated by the reverse proxy.
+// DOTNET_RUNNING_IN_CONTAINER is set automatically by the .NET Docker base image.
+var isRunningInContainer = app.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -134,12 +138,14 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/error");
-    app.UseHsts();
+    // Only enable HSTS when NOT running in a container — 
+    // TLS is terminated by the reverse proxy (Cloud Run / nginx).
+    if (!isRunningInContainer)
+    {
+        app.UseHsts();
+    }
 }
 
-// Skip HTTPS redirection inside containers — TLS is terminated by the reverse proxy.
-// DOTNET_RUNNING_IN_CONTAINER is set automatically by the .NET Docker base image.
-var isRunningInContainer = app.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER");
 if (!isRunningInContainer)
 {
     app.UseHttpsRedirection();
