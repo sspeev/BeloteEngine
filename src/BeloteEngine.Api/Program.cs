@@ -1,7 +1,9 @@
 using BeloteEngine.Api.Hubs;
+using BeloteEngine.Api.Services;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Rules;
 using BeloteEngine.Services.Services;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json;
 using System.Threading.RateLimiting;
@@ -19,7 +21,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("fixed", limiterOptions =>
     {
-        limiterOptions.PermitLimit = 100;              // Max 10 requests
+        limiterOptions.PermitLimit = 100;              // Max 100 requests
         limiterOptions.Window = TimeSpan.FromMinutes(1); // Per 1 minute
         limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         limiterOptions.QueueLimit = 2;                 // Queue up to 2 requests
@@ -61,7 +63,7 @@ builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
-    options.KeepAliveInterval = TimeSpan.FromMinutes(2);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(10);
     options.MaximumReceiveMessageSize = 102400; // 100 KB
 });
 
@@ -74,17 +76,19 @@ builder.Services.AddCors(options =>
             policy.SetIsOriginAllowed(_ => true)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials();
+                  .AllowCredentials()
+                  .WithExposedHeaders("*");
         }
         else
         {
             var allowedOrigins = builder.Configuration["AllowedOrigins"]
                 ?? throw new InvalidOperationException("AllowedOrigins is not configured.");
 
-            policy.WithOrigins(allowedOrigins)
+            policy.WithOrigins(allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries))
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials();
+                  .AllowCredentials()
+                  .WithExposedHeaders("*");
         }
     });
 });
@@ -96,6 +100,7 @@ builder.Services.AddSingleton<ITrickEvaluator, TrickEvaluator>();
 builder.Services.AddSingleton<IPlayValidator, PlayValidator>();
 builder.Services.AddSingleton<IScoreCalculator, ScoreCalculator>();
 builder.Services.AddSingleton<CachingService>();
+builder.Services.AddSingleton<IAfkTimerService, AfkTimerService>();
 builder.Services.AddLogging(logging =>
 {
     logging.ClearProviders();
@@ -159,8 +164,7 @@ app.Map("/error", (HttpContext context) =>
 app.MapControllers();
 app.MapHub<BeloteHub>("/beloteHub", options =>
 {
-    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
-                        Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+    options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
 });
 
 try

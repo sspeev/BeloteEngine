@@ -84,38 +84,59 @@ BeloteEngine follows **Clean Architecture** principles with clear separation of 
 ```
 BeloteEngine/
 ├── 📁 src/
-│   ├── 📁 BeloteEngine.Api/          # Web API & SignalR Hub
-│   │   ├── Hubs/                     # Communication layer
-│   │   │   └── BeloteHub. cs         # Real-time game hub
-│   │   ├── Controllers/              # HTTP endpoints
-│   │   └── Program.cs               # Application entry point
+│   ├── 📁 BeloteEngine.Api/                  # Web API & SignalR Hub
+│   │   ├── Hubs/                              # Real-time communication
+│   │   │   ├── BeloteHub.cs                  # SignalR hub (routing & validation)
+│   │   │   └── IBeloteClient.cs              # Strongly-typed client interface
+│   │   ├── Services/                          # API-layer service implementations
+│   │   │   └── AfkTimerService.cs            # AFK disconnect logic (uses SignalR)
+│   │   ├── Controllers/                       # HTTP endpoints
+│   │   ├── Models/                            # Request/response models
+│   │   └── Program.cs                        # Application entry point & DI setup
 │   │
-│   ├── 📁 BeloteEngine. Services/     # Business logic layer
-│   │   ├── Contracts/                # Service interfaces
+│   ├── 📁 BeloteEngine.Services/             # Business logic layer
+│   │   ├── Contracts/                         # Service interfaces
 │   │   │   ├── ILobbyService.cs
-│   │   │   └── IGameService.cs
-│   │   └── Services/                 # Service implementations
-│   │       ├── LobbyService. cs      # Lobby management
-│   │       └── GameService. cs       # Game rules & logic
+│   │   │   ├── IGameService.cs
+│   │   │   ├── IConnectionLimiter.cs
+│   │   │   └── IAfkTimerService.cs           # AFK timer contract
+│   │   ├── Services/                          # Service implementations
+│   │   │   ├── LobbyService.cs               # Lobby management
+│   │   │   ├── GameService.cs                # Game rules & logic
+│   │   │   ├── ConnectionLimiter.cs          # Per-IP connection limiting
+│   │   │   └── CachingService.cs             # In-memory cache wrapper
+│   │   ├── Rules/                             # Game rule engines
+│   │   │   ├── PlayValidator.cs              # Legal card-play enforcement
+│   │   │   ├── TrickEvaluator.cs             # Trick winner determination
+│   │   │   └── ScoreCalculator.cs            # Round & game scoring
+│   │   ├── Models/                            # Service-layer result models
+│   │   │   └── PlayCardResult.cs             # Outcome of a card play
+│   │   └── Security/                          # Input sanitisation
+│   │       └── InputValidator.cs
 │   │
-│   └── 📁 BeloteEngine.Data/         # Data layer
+│   └── 📁 BeloteEngine.Data/                 # Data / domain layer
 │       └── Entities/
-│           ├── Models/               # Domain models
-│           │   ├── Player.cs        # Player entity
-│           │   ├── Card.cs          # Card representation
-│           │   ├── Deck.cs          # Deck management
-│           │   ├── Game.cs          # Game state
-│           │   ├── Lobby.cs         # Lobby entity
-│           │   └── Team.cs          # Team entity
-│           └── Enums/                # Game enumerations
-│               ├── Suit. cs          # Card suits
-│               ├── Status.cs        # Player status
-│               └── Announces.cs     # Trump announcements
+│           ├── Models/                        # Domain models
+│           │   ├── Player.cs
+│           │   ├── Card.cs
+│           │   ├── Deck.cs
+│           │   ├── Game.cs
+│           │   ├── Lobby.cs
+│           │   ├── Team.cs
+│           │   ├── Trick.cs                  # Current trick state
+│           │   └── PlayedCard.cs             # Card + player record
+│           └── Enums/
+│               ├── Suit.cs
+│               ├── Status.cs
+│               └── Announces.cs
 │
-├── 📁 wwwroot/                       # Static web assets
-├── 🐳 compose.yaml                   # Docker Compose configuration
-├── 📄 BeloteEngine. sln               # Solution file
-└── 📜 LICENSE.txt                    # MIT License
+├── 📁 .github/workflows/
+│   └── dotnet-ci.yml                         # CI/CD → Google Cloud Run
+├── 🐳 compose.yaml                           # Docker Compose (dev & prod)
+├── � src/BeloteEngine.Api/Dockerfile        # Production multi-stage image
+├── 🐳 src/BeloteEngine.Api/DockerfileDev     # Development image (dotnet watch)
+├── 📄 BeloteEngine.sln
+└── 📜 LICENSE.txt
 ```
 
 ## 🎯 Core Components
@@ -130,6 +151,7 @@ BeloteEngine/
 - 👥 Manages SignalR groups for lobbies
 
 **Key Methods:**
+
 - `JoinLobby()` - Add player to lobby
 - `LeaveLobby()` - Remove player from lobby
 - `StartGame()` - Initiate game session
@@ -148,6 +170,7 @@ BeloteEngine/
 - Real-time updates via HubContext
 
 **Key Features:**
+
 - 🔒 Thread-safe operations
 - 👤 Player limit enforcement (4 players max)
 - 🎮 Multi-lobby support
@@ -165,6 +188,7 @@ BeloteEngine/
 ### 3. Data Layer
 
 **Domain Models:**
+
 - **Lobby** - Game lobby with players and game state
 - **Player** - User information, connection details, hand of cards
 - **Card** - Suit, rank, value, and power
@@ -229,15 +253,15 @@ Client → PlayCard(card) → BeloteHub
 ### Card Values
 
 | Rank | Trump Value | Non-Trump Value |
-|------|------------|-----------------|
-| J    | 20         | 2              |
-| 9    | 14         | 0              |
-| A    | 11         | 11             |
-| 10   | 10         | 10             |
-| K    | 4          | 4              |
-| Q    | 3          | 3              |
-| 8    | 0          | 0              |
-| 7    | 0          | 0              |
+| ---- | ----------- | --------------- |
+| J    | 20          | 2               |
+| 9    | 14          | 0               |
+| A    | 11          | 11              |
+| 10   | 10          | 10              |
+| K    | 4           | 4               |
+| Q    | 3           | 3               |
+| 8    | 0           | 0               |
+| 7    | 0           | 0               |
 
 ### Game Phases
 
@@ -249,7 +273,7 @@ Client → PlayCard(card) → BeloteHub
 
 ### Winning Condition
 
-First team to reach **151 points** wins! 
+First team to reach **151 points** wins!
 
 ## 🛡️ Design Patterns
 
@@ -264,12 +288,19 @@ First team to reach **151 points** wins!
 ```csharp
 builder.Services.AddSignalR();
 
-// Register services
+// Game services
 builder.Services.AddSingleton<ILobbyService, LobbyService>();
 builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<IConnectionLimiter, ConnectionLimiter>();
+builder.Services.AddSingleton<ITrickEvaluator, TrickEvaluator>();
+builder.Services.AddSingleton<IPlayValidator, PlayValidator>();
+builder.Services.AddSingleton<IScoreCalculator, ScoreCalculator>();
+
+// AFK timer (SignalR impl lives in the API layer)
+builder.Services.AddSingleton<IAfkTimerService, AfkTimerService>();
 
 // Map SignalR hub
-app. MapHub<BeloteHub>("/belotehub");
+app.MapHub<BeloteHub>("/beloteHub");
 ```
 
 ## 🐳 Docker Configuration
@@ -308,15 +339,20 @@ docker compose up prod
 
 #### Server → Client
 
-- `LobbyUpdated(LobbyInfo)` - Lobby state changed
-- `GameStarted(GameState)` - Game has begun
-- `CardsDealt(List<Card>)` - Player receives cards
-- `CardPlayed(GameState)` - Card was played
-- `GameOver(GameResult)` - Game finished
+- `PlayerJoined(Lobby)` - A player joined the lobby
+- `PlayerLeft(Lobby)` - A player left the lobby
+- `LobbyDeleted(int lobbyId)` - Lobby was closed
+- `GameStarted(Lobby)` - Game has begun
+- `CardsDealt(Lobby, dealerName, bidderName)` - Cards dealt, bidding starts
+- `BidMade(Lobby)` - A bid was placed, next player's turn
+- `Gameplay(Lobby)` - Bidding ended, card play begins
+- `CardPlayed(Lobby)` - A card was played
+- `GameRestarted(Lobby)` - Game was reset
+- `AfkDisconnected()` - Player timed out due to inactivity
 
 ## 🤝 Contributing
 
-Contributions are welcome!   Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
