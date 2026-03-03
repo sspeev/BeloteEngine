@@ -46,12 +46,16 @@ public class GameService(
     {
         // Start the playing phase — initialize round
         var game = lobby.Game;
-        lobby.Game.CurrentPlayer = lobby.Game.Starter;
         game.CurrentRound = new Round
         {
             Trump = game.CurrentAnnounce,
             AnnouncingTeam = GetAnnouncingTeam(game)
         };
+
+        // Align RoundQueue to the Starter so GetNextPlayer is correct from the very first card.
+        // Previously this was a bare CurrentPlayer = Starter which left RoundQueue pointing at
+        // whoever happened to be at its front — causing wrong player / wrong direction on card 1.
+        SetCurrentPlayerTo(game, game.Starter);
 
         // Keep game.CurrentTrick in sync so clients can read lobby.game.currentTrick
         game.CurrentTrick = game.CurrentRound.CurrentTrick;
@@ -71,28 +75,21 @@ public class GameService(
         var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
             ?? throw new ArgumentException($"Player {playerName} not found.");
 
-        // Validate it's this player's turn
         if (game.CurrentPlayer.Name != playerName)
             throw new InvalidOperationException("It's not your turn.");
 
-        // Validate the card play
         if (!playValidator.IsValidPlay(card, player, round.CurrentTrick, round.Trump))
             throw new InvalidOperationException("Invalid card play.");
 
-        // Play the card — add to the current trick and remove from hand
         round.CurrentTrick.PlayedCards.Add(new PlayedCard(player, card));
         player.Hand.RemoveAll(c => c.Suit == card.Suit && c.Rank == card.Rank);
 
-        // Keep game.CurrentTrick in sync for client serialisation
         game.CurrentTrick = round.CurrentTrick;
-
-        // Check if trick is complete
         if (round.CurrentTrick.IsComplete)
         {
             var trickWinner = trickEvaluator.DetermineWinner(round.CurrentTrick, round.Trump);
             round.CurrentTrick.Winner = trickWinner;
 
-            // Accumulate points per team
             int trickPoints = round.CurrentTrick.PointsValue;
             if (IsOnTeam(trickWinner, game.Teams[0]))
                 round.Team1TrickPoints += trickPoints;
@@ -103,7 +100,6 @@ public class GameService(
 
             if (round.IsComplete)
             {
-                // Round over — calculate scores
                 var (t1, t2) = scoreCalculator.CalculateRoundScore(round, game.Teams);
                 game.Teams[0].Score += t1;
                 game.Teams[1].Score += t2;
@@ -117,7 +113,6 @@ public class GameService(
                 };
             }
 
-            // Start new trick — trick winner leads; sync game.CurrentTrick
             round.CurrentTrick = new Trick();
             game.CurrentTrick = round.CurrentTrick;
             SetCurrentPlayerTo(game, trickWinner);
@@ -166,12 +161,15 @@ public class GameService(
     
     private static void SetCurrentPlayerTo(Game game, Player player)
     {
-        // Rotate the RoundQueue until the specified player is at the front
+        // Rotate until the target player is at the front
         while (game.RoundQueue.Peek().Name != player.Name)
-        {
             RotatePlayerQueue(game.RoundQueue);
-        }
-        game.CurrentPlayer = game.RoundQueue.Peek();
+
+        // Consume the winner from the front (same as RotatePlayerQueue/GetNextPlayer does)
+        // so the next GetNextPlayer call correctly returns the second player, not the winner again.
+        var winner = game.RoundQueue.Dequeue();
+        game.RoundQueue.Enqueue(winner);
+        game.CurrentPlayer = winner;
     }
 
     public Player GetNextBidder(Lobby lobby)

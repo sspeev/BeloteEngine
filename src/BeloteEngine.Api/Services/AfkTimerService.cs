@@ -10,11 +10,16 @@ namespace BeloteEngine.Api.Services;
 /// When a timer fires, the player receives an AfkDisconnected notification
 /// and their connection is aborted after a short grace period.
 /// </summary>
-public sealed class AfkTimerService(IHubContext<Hubs.BeloteHub, Hubs.IBeloteClient> hubContext)
+public sealed class AfkTimerService(
+    IHubContext<Hubs.BeloteHub, Hubs.IBeloteClient> hubContext,
+    IConfiguration configuration)
     : IAfkTimerService
 {
-    private const int AfkSeconds = 30;
-    private const int GraceMs    = 300;
+    private const int DefaultAfkSeconds = 30;
+    private const int GraceMs           = 300;
+
+    private int AfkSeconds =>
+        configuration.GetValue<int?>("AfkTimeoutSeconds") ?? DefaultAfkSeconds;
 
     private static readonly ConcurrentDictionary<string, HubCallerContext> _contexts = new();
     private static readonly ConcurrentDictionary<string, CancellationTokenSource> _timers = new();
