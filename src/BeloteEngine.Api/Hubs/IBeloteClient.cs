@@ -23,6 +23,8 @@ public interface IBeloteClient
 
     Task GameRestarted(Lobby lobby);
 
+    Task GameSkipped(Lobby lobby);
+
     Task CardPlayed(Lobby lobby);
 
     Task AfkDisconnected();

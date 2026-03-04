@@ -100,9 +100,18 @@ public class GameService(
 
             if (round.IsComplete)
             {
-                var (t1, t2) = scoreCalculator.CalculateRoundScore(round, game.Teams);
+                var (t1, t2, isHanging) = scoreCalculator.CalculateRoundScore(
+                    round, game.Teams, game.PendingPoints);
+
                 game.Teams[0].Score += t1;
                 game.Teams[1].Score += t2;
+
+                if (isHanging)
+                    // Accumulate raw points from this hanging round for the next deal
+                    game.PendingPoints += round.Team1TrickPoints + round.Team2TrickPoints + 10;
+                else
+                    game.PendingPoints = 0;
+
                 lobby.GamePhase = "scoring";
 
                 return new PlayCardResult
@@ -182,7 +191,15 @@ public class GameService(
 
     public bool IsGameOver(int team1Score, int team2Score)
     {
-        return team1Score >= 151 || team2Score >= 151;
+        // At least one team must reach 151 to potentially end the game
+        if (team1Score < 151 && team2Score < 151) return false;
+
+        // Both teams crossed 151 simultaneously with equal scores →
+        // game continues until one team leads
+        if (team1Score == team2Score) return false;
+
+        // One or both teams are at 151+; the one with more points wins
+        return true;
     }
 
     private static Queue<Player> InitSortedPlayers(Team[] teams)

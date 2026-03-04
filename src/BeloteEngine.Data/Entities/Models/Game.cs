@@ -13,7 +13,10 @@ namespace BeloteEngine.Data.Entities.Models
 
         public void SetPointsOnCards()
         {
-            foreach (var card in Deck.Cards)
+            var allHandCards = Teams
+                .SelectMany(t => t.Players)
+                .SelectMany(p => p.Hand);
+            foreach (var card in allHandCards)
             {
                 switch (CurrentAnnounce)
                 {
@@ -26,6 +29,12 @@ namespace BeloteEngine.Data.Entities.Models
                                 "J" => 20,
                                 _ => card.Value
                             };
+                            card.Power = card.Rank switch
+                            {
+                                "J" => 8, "9" => 7, "A" => 6, "10" => 5,
+                                "K" => 4, "Q" => 3, "8" => 2, "7" => 1,
+                                _ => card.Power
+                            };
                         }
                         break;
                     case Announces.Diamonds:
@@ -36,6 +45,12 @@ namespace BeloteEngine.Data.Entities.Models
                                 "9" => 14,
                                 "J" => 20,
                                 _ => card.Value
+                            };
+                            card.Power = card.Rank switch
+                            {
+                                "J" => 8, "9" => 7, "A" => 6, "10" => 5,
+                                "K" => 4, "Q" => 3, "8" => 2, "7" => 1,
+                                _ => card.Power
                             };
                         }
                         break;
@@ -152,5 +167,11 @@ namespace BeloteEngine.Data.Entities.Models
 
 
         public int PassCounter { get; set; }
+
+        /// <summary>
+        /// Raw trick points accumulated from hanging rounds (висяща игра).
+        /// Added to the winning pool in the next completed or set round.
+        /// </summary>
+        public int PendingPoints { get; set; }
     }
 }

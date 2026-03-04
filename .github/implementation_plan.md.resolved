@@ -1,0 +1,94 @@
+# Fix Trick Evaluation Bugs in BeloteEngine
+
+The intermittent trick winner bug is caused by **card `Power` values being wrong at game time**.
+Cards are dealt from the deck into player hands *before* [SetPointsOnCards()](file:///d:/GitHubRepos/BeloteEngine/src/BeloteEngine.Data/Entities/Models/Game.cs#14-135) is called.
+That method iterates `Deck.Cards` — but the deck is empty by then, so **no power overrides
+ever reach the cards in players' hands**. The evaluator then falls back to the static Deck
+ordering (`7=1 … A=8`), which is the non-trump ordering — completely wrong when trump is in play.
+
+Additionally, [SetPointsOnCards()](file:///d:/GitHubRepos/BeloteEngine/src/BeloteEngine.Data/Entities/Models/Game.cs#14-135) is missing `Power` updates for the **Clubs** and **Diamonds**
+trump cases (only Hearts and Spades were correctly updated, so even fixing Bug 1 alone would
+leave Clubs/Diamonds broken).
+
+## User Review Required
+
+> [!IMPORTANT]
+> This is a backend-only fix in the `BeloteEngine` C# solution at
+> `d:\GitHubRepos\BeloteEngine`. No frontend changes are needed.
+
+> [!WARNING]
+> Because `SetPointsOnCards()` is being moved to iterate `Player.Hand` cards (not `Deck.Cards`),
+> the method call site in `GameService.Gameplay()` needs no change — but the method itself is
+> completely rewritten.
+
+---
+
+## Proposed Changes
+
+### Core Model — Card Power Assignment
+
+#### [MODIFY] [Game.cs](file:///d:/GitHubRepos/BeloteEngine/src/BeloteEngine.Data/Entities/Models/Game.cs)
+
+`SetPointsOnCards()` must iterate **each player's hand** instead of `Deck.Cards`.
+It also needs to add the missing `Power` overrides for `Clubs` and `Diamonds` trump cases.
+
+```diff
+- foreach (var card in Deck.Cards)
++ var allHandCards = Teams
++     .SelectMany(t => t.Players)
++     .SelectMany(p => p.Hand);
++ foreach (var card in allHandCards)
+```
+
+For `Clubs` trump case — add the missing power block (same ordering as Hearts/Spades):
+```diff
+  case Announces.Clubs:
+      if (card.Suit == Suit.Clubs)
+      {
+          card.Value = card.Rank switch { "9" => 14, "J" => 20, _ => card.Value };
++         card.Power = card.Rank switch
++         {
++             "J" => 8, "9" => 7, "A" => 6, "10" => 5,
++             "K" => 4, "Q" => 3, "8" => 2, "7" => 1,
++             _ => card.Power
++         };
+      }
+      break;
+```
+
+Same addition for `Diamonds` trump case.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+No existing test project was found in the solution. I propose adding an xUnit test project.
+I will create:
+
+- `d:\GitHubRepos\BeloteEngine\tests\BeloteEngine.Tests\TrickEvaluatorTests.cs`
+
+covering the scenarios:
+1. **Clubs trump** — J of Clubs beats 10 of Clubs (power ordering: J=8 > 10=5)
+2. **Diamonds trump** — J of Diamonds beats 10 of Diamonds
+3. **Hearts trump** — J of Hearts beats 10 of Hearts *(was already correct)*
+4. **Spades trump** — J of Spades beats 10 of Spades *(was already correct)*
+5. **AllTrumps** — J of lead suit beats 10 of lead suit
+6. **NoTrump** — A beats K (standard ordering preserved)
+7. **Non-trump lead with trump played** — trump card wins regardless of its rank vs lead suit
+
+Run tests with:
+```bash
+cd d:\GitHubRepos\BeloteEngine
+dotnet test
+```
+
+### Manual Verification
+
+To reproduce and verify the fix without a test project:
+1. Start a 4-player game and set the bid to **Clubs** or **Diamonds** trump.
+2. Have one player lead with the **10 of that suit**.
+3. Have another player play the **J of that suit** (the Jack is the highest trump card).
+4. Verify the player who played the **J wins** the trick.
+5. Repeat with **Spades** or **Hearts** trump (these were already correct) to confirm no regression.

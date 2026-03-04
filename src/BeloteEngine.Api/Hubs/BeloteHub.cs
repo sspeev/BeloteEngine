@@ -162,6 +162,16 @@ public class BeloteHub(
         afkTimer.Start(firstBidder.ConnectionId);
     }
 
+    public async Task SkipRound(int lobbyId)
+    {
+        var lobby = GetLobbyOrThrow(lobbyId);
+        GetCallerOrThrow(lobby);
+        gameService.GameReset(lobby);
+        lobby.UpdateActivity();
+        logger.LogInformation("Round skipped (no bid) in lobby {LobbyId}", lobbyId);
+        await Clients.Group($"Lobby_{lobbyId}").GameSkipped(lobby);
+    }
+
     public async Task ResetGame(int lobbyId)
     {
         var lobby = GetLobbyOrThrow(lobbyId);
