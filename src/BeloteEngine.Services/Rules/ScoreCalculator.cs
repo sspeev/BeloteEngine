@@ -1,51 +1,84 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Data.Entities.Enums;
+using BeloteEngine.Data.Entities.Models;
 
 namespace BeloteEngine.Services.Rules;
 
 public class ScoreCalculator : IScoreCalculator
 {
-    public (int Team1Score, int Team2Score) CalculateRoundScore(Round round, Team[] teams)
+    /// <summary>
+    /// Divides raw trick points by 10, rounding half-up (standard Belote practice).
+    /// </summary>
+    private static int ToRecorded(int raw)
+        => (int)Math.Round(raw / 10.0, MidpointRounding.AwayFromZero);
+
+    public (int Team1Score, int Team2Score, bool IsHanging) CalculateRoundScore(
+        Round round, Team[] teams, int pendingPoints)
     {
         var announcingTeam = round.AnnouncingTeam;
-        var defendingTeam = teams.First(t => t != announcingTeam);
+        var defendingTeam  = teams.First(t => t != announcingTeam);
 
-        int announcerPoints = round.AnnouncingTeam == teams[0]
+        // Points each team earned from tricks this round
+        int announcerRaw = round.AnnouncingTeam == teams[0]
             ? round.Team1TrickPoints
             : round.Team2TrickPoints;
-        int defenderPoints = round.AnnouncingTeam == teams[0]
+        int defenderRaw = round.AnnouncingTeam == teams[0]
             ? round.Team2TrickPoints
             : round.Team1TrickPoints;
 
-        // Last trick bonus (+10)
+        // Last-trick bonus (+10 raw points)
         var lastTrick = round.CompletedTricks.Last();
         if (IsOnTeam(lastTrick.Winner!, announcingTeam))
-            announcerPoints += 10;
+            announcerRaw += 10;
         else
-            defenderPoints += 10;
+            defenderRaw += 10;
 
-        // Valat (capot) — one team won all 8 tricks
+        // NoTrump (Без коз) — all recorded scores are doubled
+        int multiplier = round.Trump == Announces.NoTrump ? 2 : 1;
+
+        // ── Capot (valat) — one team won all 8 tricks ────────────────────────
+        // All raw points go to the winning team; pending carried in too.
         bool announcerCapot = round.CompletedTricks.All(t => IsOnTeam(t.Winner!, announcingTeam));
-        bool defenderCapot = round.CompletedTricks.All(t => IsOnTeam(t.Winner!, defendingTeam));
+        bool defenderCapot  = round.CompletedTricks.All(t => IsOnTeam(t.Winner!, defendingTeam));
 
         if (announcerCapot)
-            return announcingTeam == teams[0] ? (252, 0) : (0, 252);
-
-        if (defenderCapot)
-            return defendingTeam == teams[0] ? (252, 0) : (0, 252);
-
-        // "Inside" rule — announcer must have more points, otherwise defender gets all
-        if (announcerPoints <= defenderPoints)
         {
-            // Announcer is "inside" — all points go to defender
-            int totalPoints = announcerPoints + defenderPoints;
-            return defendingTeam == teams[0]
-                ? (totalPoints, 0)
-                : (0, totalPoints);
+            int total = ToRecorded(announcerRaw + pendingPoints) * multiplier;
+            return announcingTeam == teams[0] ? (total, 0, false) : (0, total, false);
         }
 
+        if (defenderCapot)
+        {
+            int total = ToRecorded(defenderRaw + pendingPoints) * multiplier;
+            return defendingTeam == teams[0] ? (total, 0, false) : (0, total, false);
+        }
+
+        // ── Hanging (Висяща) — exactly equal trick points ─────────────────────
+        // Announcer records 0; pending accumulates; defender records own points.
+        if (announcerRaw == defenderRaw)
+        {
+            int defScore = ToRecorded(defenderRaw) * multiplier;
+            return defendingTeam == teams[0]
+                ? (defScore, 0, true)
+                : (0, defScore, true);
+        }
+
+        // ── Set (Вкарана) — announcer has fewer points ───────────────────────
+        // Defender records all points (own + announcer + pending); announcer records 0.
+        if (announcerRaw < defenderRaw)
+        {
+            int allPoints = ToRecorded(announcerRaw + defenderRaw + pendingPoints) * multiplier;
+            return defendingTeam == teams[0]
+                ? (allPoints, 0, false)
+                : (0, allPoints, false);
+        }
+
+        // ── Completed (Изкарана) — announcer has more points ─────────────────
+        // Announcer records own points (+ pending); defender records own points.
+        int annScore = ToRecorded(announcerRaw + pendingPoints) * multiplier;
+        int defScoreCompleted = ToRecorded(defenderRaw) * multiplier;
         return announcingTeam == teams[0]
-            ? (announcerPoints, defenderPoints)
-            : (defenderPoints, announcerPoints);
+            ? (annScore, defScoreCompleted, false)
+            : (defScoreCompleted, annScore, false);
     }
 
     private static bool IsOnTeam(Player player, Team team)
