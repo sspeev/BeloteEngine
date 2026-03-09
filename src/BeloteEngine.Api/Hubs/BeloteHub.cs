@@ -215,7 +215,7 @@ public class BeloteHub(
         if (lobby.Game.Starter == null)
             lobby.Game.Starter = callingPlayer;
 
-        lobby.Game.CurrentPlayer = lobby.Game.Starter ?? callingPlayer;
+        lobby.Game.CurrentPlayer = lobby.Game.Starter ?? callingPlayer; 
 
         gameService.Gameplay(lobby);
         lobby.UpdateActivity();
@@ -239,6 +239,11 @@ public class BeloteHub(
         }
         catch (InvalidOperationException ex) { throw new HubException(ex.Message); }
         catch (ArgumentException ex)         { throw new HubException(ex.Message); }
+
+        if (result.GameOver)
+        {
+            lobby.GamePhase = "gameover";
+        }
 
         lobby.UpdateActivity();
         logger.LogInformation(

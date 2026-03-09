@@ -130,7 +130,7 @@ public class GameService(
         }
 
         // Trick not complete — advance to next player
-        game.CurrentPlayer = GetNextPlayer(game.RoundQueue);
+        game.CurrentPlayer = GetNextPlayer(game.SortedPlayers);
         return new PlayCardResult();
     }
 
@@ -171,13 +171,13 @@ public class GameService(
     private static void SetCurrentPlayerTo(Game game, Player player)
     {
         // Rotate until the target player is at the front
-        while (game.RoundQueue.Peek().Name != player.Name)
-            RotatePlayerQueue(game.RoundQueue);
+        while (game.SortedPlayers.Peek().Name != player.Name)
+            RotatePlayerQueue(game.SortedPlayers);
 
         // Consume the winner from the front (same as RotatePlayerQueue/GetNextPlayer does)
         // so the next GetNextPlayer call correctly returns the second player, not the winner again.
-        var winner = game.RoundQueue.Dequeue();
-        game.RoundQueue.Enqueue(winner);
+        var winner = game.SortedPlayers.Dequeue();
+        game.SortedPlayers.Enqueue(winner);
         game.CurrentPlayer = winner;
     }
 

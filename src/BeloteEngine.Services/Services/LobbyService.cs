@@ -21,7 +21,7 @@ public class LobbyService : ILobbyService
     private readonly ConcurrentDictionary<int, string> _lobbyToIp = new();
 
     private const int MAX_TOTAL_LOBBIES = 100;
-    private const int MAX_LOBBIES_PER_IP = 5;
+    private const int MAX_LOBBIES_PER_IP = 1;
     private readonly Timer _cleanupTimer;
 
     public LobbyService(
