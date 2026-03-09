@@ -49,7 +49,9 @@ public class GameService(
         game.CurrentRound = new Round
         {
             Trump = game.CurrentAnnounce,
-            AnnouncingTeam = GetAnnouncingTeam(game)
+            AnnouncingTeam = GetTeamContainingPlayer(game, game.ContractPlayer),
+            IsDoubled = game.IsDoubled,
+            IsReDoubled = game.IsReDoubled
         };
 
         // Align RoundQueue to the Starter so GetNextPlayer is correct from the very first card.
@@ -279,6 +281,21 @@ public class GameService(
         throw new InvalidOperationException("Contract player is not part of any team.");
     }
 
+    private static Team GetTeamContainingPlayer(Game game, Player player)
+    {
+        if (player == null)
+            throw new ArgumentNullException(nameof(player), "Player cannot be null.");
+
+        foreach (var team in game.Teams)
+        {
+            if (team.Players.Contains(player))
+            {
+                return team;
+            }
+        }
+        throw new InvalidOperationException($"Player {player.Name} is not found in any team.");
+    }
+
     public void GetPlayerCards(Player player, Deck deck)
     {
         for (int i = 1; i <= 8; i++)
@@ -302,29 +319,63 @@ public class GameService(
         player.AnnounceOffer = announce;
 
         // Check if the player is passing or making a real bid
-        if (announce != Pass)
+    if (announce != Pass)
+    {
+        if (announce == Announces.Double)
         {
-            // Player made a real bid - check if it's higher than current announce
-            if (lobby.Game.CurrentAnnounce != None && lobby.Game.CurrentAnnounce < announce)
-            {
-                logger.LogInformation("Current announce updated to: {Announce}", announce);
-                lobby.Game.CurrentAnnounce = announce;
-                lobby.Game.ContractPlayer = player;
-                lobby.Game.PassCounter = 0;
-            }
-            else if (lobby.Game.CurrentAnnounce == None)
-            {
-                // First real bid
-                logger.LogInformation("First announce set to: {Announce}", announce);
-                lobby.Game.CurrentAnnounce = announce;
-                lobby.Game.ContractPlayer = player;
-                lobby.Game.PassCounter = 0;
-            }
-            else
-            {
-                throw new InvalidOperationException("Your bid must be higher than the current announce!");
-            }
+            if (lobby.Game.CurrentAnnounce == None || lobby.Game.CurrentAnnounce == Announces.Double || lobby.Game.CurrentAnnounce == Announces.ReDouble)
+                throw new InvalidOperationException("You can only double an active suit or NoTrump bid!");
+
+            if (lobby.Game.ContractPlayer == null || IsOnTeam(player, lobby.Game.Teams.First(t => IsOnTeam(lobby.Game.ContractPlayer, t))))
+                throw new InvalidOperationException("You can only double an opponent's bid!");
+
+            if (lobby.Game.IsDoubled)
+                throw new InvalidOperationException("This bid is already doubled!");
+
+            lobby.Game.IsDoubled = true;
+            lobby.Game.PassCounter = 0; // Reset pass counter to allow opponents to respond/redouble
+            logger.LogInformation("Player {PlayerName} DOUBLED the contract!", playerName);
         }
+        else if (announce == Announces.ReDouble)
+        {
+            if (!lobby.Game.IsDoubled)
+                throw new InvalidOperationException("You can only redouble a doubled contract!");
+
+            if (lobby.Game.IsReDoubled)
+                throw new InvalidOperationException("This bid is already redoubled!");
+
+            if (lobby.Game.ContractPlayer == null || !IsOnTeam(player, lobby.Game.Teams.First(t => IsOnTeam(lobby.Game.ContractPlayer, t))))
+                throw new InvalidOperationException("You can only redouble your own team's doubled contract!");
+
+            lobby.Game.IsReDoubled = true;
+            lobby.Game.PassCounter = 0;
+            logger.LogInformation("Player {PlayerName} REDOUBLED the contract!", playerName);
+        }
+        // Player made a regular bid - check if it's higher than current announce
+        else if (lobby.Game.CurrentAnnounce != None && lobby.Game.CurrentAnnounce < announce)
+        {
+            logger.LogInformation("Current announce updated to: {Announce}", announce);
+            lobby.Game.CurrentAnnounce = announce;
+            lobby.Game.ContractPlayer = player;
+            lobby.Game.IsDoubled = false;
+            lobby.Game.IsReDoubled = false;
+            lobby.Game.PassCounter = 0;
+        }
+        else if (lobby.Game.CurrentAnnounce == None)
+        {
+            // First real bid
+            logger.LogInformation("First announce set to: {Announce}", announce);
+            lobby.Game.CurrentAnnounce = announce;
+            lobby.Game.ContractPlayer = player;
+            lobby.Game.IsDoubled = false;
+            lobby.Game.IsReDoubled = false;
+            lobby.Game.PassCounter = 0;
+        }
+        else
+        {
+            throw new InvalidOperationException("Your bid must be higher than the current announce!");
+        }
+    }
         else
         {
             // Player passed
@@ -341,47 +392,23 @@ public class GameService(
         return nextPlayer;
     }
 
-    //public Player PlayCard(string playerName, Card card, Lobby lobby)
-    //{
-    //    var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
-    //        ?? throw new ArgumentException($"Player {playerName} not found in the lobby.");
-    //    var cardToPlay = player.Hand.FirstOrDefault(c => c.Rank == card.Rank && c.Suit == card.Suit)
-    //        ?? throw new ArgumentException($"Card {card.Rank}{nameof(card.Suit).First()} not found in player's hand.");
-    //    // Remove the card from player's hand
-    //    player.Hand.Remove(cardToPlay);
-
-
-
-    //    logger.LogInformation($"Player {playerName} played card: {card.Rank}{nameof(card.Suit).First()}");
-    //}
-
     public Game GameReset(Lobby lobby)
     {
         ValidateLobby(lobby);
-
         var game = lobby.Game;
-
-        // Reset bidding state
         game.CurrentAnnounce = None;
         game.PassCounter = 0;
-
-        // Reset round/trick state so no stale data is exposed after reset
         game.CurrentRound = null;
         game.CurrentTrick = null;
-
-        // Clear player hands for new deal
         foreach (var player in lobby.ConnectedPlayers)
         {
             player.Hand.Clear();
             player.AnnounceOffer = None;
         }
 
-        // Create a new deck for the new round
         game.Deck = new Deck();
         game.Deck.Cards = CardsRandomizer(game.Deck.Cards);
 
-        // Ensure RoundQueue is initialized; it may be null/empty if ResetGame
-        // is called before InitialPhase or after a lobby/game recreation.
         if (game.RoundQueue == null || game.RoundQueue.Count == 0)
         {
             game.RoundQueue = new Queue<Player>();
@@ -409,16 +436,8 @@ public class GameService(
         return game;
     }
 
-    public Game NextGame(Lobby lobby)
+    public Game Creator()
     {
-        //Calculate points
-        var game = lobby.Game;
-        game.CurrentAnnounce = None;
-        game.PassCounter = 0;
-
-        InitialPhase(lobby);
-        return game;
+        return new Game();
     }
-
-    public Game Creator() => new();
 }

@@ -164,6 +164,10 @@ namespace BeloteEngine.Data.Entities.Models
 
         public Player? ContractPlayer { get; set; }
 
+        public bool IsDoubled { get; set; }
+        
+        public bool IsReDoubled { get; set; }
+
 
 
         public int PassCounter { get; set; }
