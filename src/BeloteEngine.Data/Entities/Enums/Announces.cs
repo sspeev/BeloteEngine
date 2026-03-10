@@ -9,6 +9,8 @@
         Hearts = 4,
         Spades = 5,
         NoTrump = 6,
-        AllTrumps = 7
+        AllTrumps = 7,
+        Double = 8,
+        ReDouble = 9
     }
 }

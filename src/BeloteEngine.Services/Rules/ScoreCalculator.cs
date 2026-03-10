@@ -32,8 +32,9 @@ public class ScoreCalculator : IScoreCalculator
         else
             defenderRaw += 10;
 
-        // NoTrump (Без коз) — all recorded scores are doubled
-        int multiplier = round.Trump == Announces.NoTrump ? 2 : 1;
+        // Multipliers (NoTrump *2, Double *2, Redouble *4)
+        int doubleMulti = round.IsReDoubled ? 4 : (round.IsDoubled ? 2 : 1);
+        int multiplier = (round.Trump == Announces.NoTrump ? 2 : 1) * doubleMulti;
 
         // ── Capot (valat) — one team won all 8 tricks ────────────────────────
         // All raw points go to the winning team; pending carried in too.

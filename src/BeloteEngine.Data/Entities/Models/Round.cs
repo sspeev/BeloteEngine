@@ -11,6 +11,9 @@ namespace BeloteEngine.Data.Entities.Models
 
         public Team AnnouncingTeam { get; set; } = null!;
 
+        public bool IsDoubled { get; set; }
+        public bool IsReDoubled { get; set; }
+
         public Trick CurrentTrick { get; set; } = new();
 
         public List<Trick> CompletedTricks { get; set; } = [];

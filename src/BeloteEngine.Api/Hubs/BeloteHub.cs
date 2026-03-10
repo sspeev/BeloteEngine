@@ -15,7 +15,6 @@ public class BeloteHub(
     , IAfkTimerService afkTimer
     ) : Hub<IBeloteClient>
 {
-    // ── Hub lifecycle ─────────────────────────────────────────────────────────
 
     public override async Task OnConnectedAsync()
     {
@@ -152,6 +151,7 @@ public class BeloteHub(
 
         var firstBidder = gameService.PlayerToStartAnnounceAndPlay(players);
         lobby.Game.Announcer = firstBidder;
+        lobby.Game.Starter = firstBidder;
         lobby.Game.CurrentPlayer = firstBidder;
 
         foreach (var player in players)
@@ -212,10 +212,8 @@ public class BeloteHub(
         var lobby = GetLobbyOrThrow(lobbyId);
         var callingPlayer = GetCallerOrThrow(lobby);
 
-        if (lobby.Game.Starter == null)
-            lobby.Game.Starter = callingPlayer;
-
-        lobby.Game.CurrentPlayer = lobby.Game.Starter ?? callingPlayer;
+        // The player who triggers Gameplay has no mapping to the actual starting queue order.
+        // GameService.Gameplay naturally aligns the queue to game.Starter cleanly.
 
         gameService.Gameplay(lobby);
         lobby.UpdateActivity();
@@ -239,6 +237,11 @@ public class BeloteHub(
         }
         catch (InvalidOperationException ex) { throw new HubException(ex.Message); }
         catch (ArgumentException ex)         { throw new HubException(ex.Message); }
+
+        if (result.GameOver)
+        {
+            lobby.GamePhase = "gameover";
+        }
 
         lobby.UpdateActivity();
         logger.LogInformation(

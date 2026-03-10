@@ -18,6 +18,5 @@ public interface IGameService
     Player MakeBid(string playerName, string bid, Lobby lobby);
     PlayCardResult PlayCard(string playerName, Card card, Lobby lobby);
     Game GameReset(Lobby lobby);
-    Game NextGame(Lobby lobby);
     Game Creator();
 }
