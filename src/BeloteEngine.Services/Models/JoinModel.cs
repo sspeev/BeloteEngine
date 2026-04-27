@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BeloteEngine.Services.Models;
 
@@ -11,4 +11,6 @@ public class JoinModel
     [Required(ErrorMessage = "LobbyId is required")]
     [Range(1, 9999)]
     public int LobbyId { get; set; }
+
+    public string SessionId { get; set; } = string.Empty;
 }

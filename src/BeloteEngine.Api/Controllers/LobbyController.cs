@@ -1,8 +1,9 @@
-﻿using BeloteEngine.Api.Models;
+using BeloteEngine.Api.Models;
 using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Http;
 
 namespace BeloteEngine.Api.Controllers;
 
@@ -15,6 +16,28 @@ public sealed class LobbyController(
     ILobbyService lobbyService
 ) : ControllerBase
 {
+    [HttpPost("set-session")]
+    public IActionResult SetSession([FromBody] SessionRequestModel request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
+
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true, 
+            SameSite = SameSiteMode.None,
+            Expires = DateTimeOffset.UtcNow.AddDays(7)
+        };
+
+        Response.Cookies.Append("sessionId", sessionId, cookieOptions);
+        Response.Cookies.Append("playerName", request.PlayerName, cookieOptions);
+
+        return Ok(new { sessionId, playerName = request.PlayerName });
+    }
+
     [HttpPost("create")]
     public async Task<IActionResult> CreateLobby([FromBody] CreateRequestModel request)
     {

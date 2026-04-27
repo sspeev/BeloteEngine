@@ -1,4 +1,4 @@
-﻿using BeloteEngine.Data.Entities.Models;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Models;
 using BeloteEngine.Services.Security;
@@ -161,21 +161,27 @@ public class LobbyService : ILobbyService
         {
             CompactPlayers(lobby.ConnectedPlayers);
 
+            var existingPlayer = lobby.ConnectedPlayers.FirstOrDefault(p => string.Equals(p.Name, player.Name, OrdinalIgnoreCase));
+            if (existingPlayer != null)
+            {
+                existingPlayer.ConnectionId = player.ConnectionId;
+                existingPlayer.Status = Connected;
+                lobby.UpdateActivity();
+                InvalidateLobbyCache(lobbyId);
+
+                return new JoinResult
+                {
+                    Success = true,
+                    Lobby = lobby
+                };
+            }
+
             if (IsFull(lobbyId))
             {
                 return new JoinResult
                 {
                     Success = false,
                     ErrorMessage = "Lobby is full."
-                };
-            }
-
-            if (lobby.ConnectedPlayers.Any(p => string.Equals(p.Name, player.Name, OrdinalIgnoreCase)))
-            {
-                return new JoinResult
-                {
-                    Success = false,
-                    ErrorMessage = "Player already connected."
                 };
             }
 
@@ -214,6 +220,15 @@ public class LobbyService : ILobbyService
             CompactPlayers(lobby.ConnectedPlayers);
             lobby.UpdateActivity();
             InvalidateLobbyCache(lobbyId);
+
+            if (lobby.ConnectedPlayers.Count == 0)
+            {
+                if (_lobbies.TryRemove(lobbyId, out _))
+                {
+                    OnLobbyRemoved(lobbyId);
+                    _logger.LogInformation("Removed empty lobby {LobbyId} immediately on player leave.", lobbyId);
+                }
+            }
 
             return removed > 0;
         }

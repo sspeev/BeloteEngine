@@ -1,4 +1,4 @@
-﻿using BeloteEngine.Api.Models;
+using BeloteEngine.Api.Models;
 using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Models;
@@ -61,6 +61,19 @@ public class BeloteHub(
         catch (ArgumentException ex)
         {
             throw new HubException(ex.Message);
+        }
+
+        var httpContext = Context.GetHttpContext();
+        var cookieSessionId = httpContext?.Request.Cookies["sessionId"];
+        var cookiePlayerName = httpContext?.Request.Cookies["playerName"];
+
+        if (!string.IsNullOrEmpty(cookieSessionId) && !string.IsNullOrEmpty(cookiePlayerName))
+        {
+            if (cookiePlayerName == request.PlayerName && cookieSessionId != request.SessionId)
+            {
+                logger.LogWarning("Session spoof attempt for player {PlayerName}", request.PlayerName);
+                throw new HubException("Session validation failed. Possible identity spoofing.");
+            }
         }
 
         Player player = new()
