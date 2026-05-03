@@ -1,3 +1,4 @@
+using BeloteEngine.Api.Contracts;
 using BeloteEngine.Api.Hubs;
 using BeloteEngine.Api.Services;
 using BeloteEngine.Services.Contracts;
@@ -16,6 +17,7 @@ builder.Services.AddMemoryCache(options =>
     options.CompactionPercentage = 0.25;
     options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
+builder.Services.AddDataProtection();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -31,7 +33,7 @@ builder.Services.AddRateLimiter(options =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         await context.HttpContext.Response.WriteAsync(
-            "Too many requests.  Please try again later.",
+            "Too many requests. Please try again later.",
             cancellationToken
         );
     };
@@ -101,6 +103,7 @@ builder.Services.AddSingleton<IPlayValidator, PlayValidator>();
 builder.Services.AddSingleton<IScoreCalculator, ScoreCalculator>();
 builder.Services.AddSingleton<CachingService>();
 builder.Services.AddSingleton<IAfkTimerService, AfkTimerService>();
+builder.Services.AddSingleton<ISessionService, SessionService>();
 builder.Services.AddLogging(logging =>
 {
     logging.ClearProviders();
@@ -153,6 +156,7 @@ app.UseCors("AllowFrontend");
 app.UseRouting();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
+app.UseRateLimiter();
 
 // Global error handling endpoint
 app.Map("/error", (HttpContext context) =>

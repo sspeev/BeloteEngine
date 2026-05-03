@@ -1,20 +1,26 @@
 using BeloteEngine.Api.Models;
+using BeloteEngine.Api.Services;
 using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Models;
 using BeloteEngine.Services.Security;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Api.Hubs;
 
+[EnableRateLimiting("fixed")]
 public class BeloteHub(
       ILogger<BeloteHub> logger
     , ILobbyService lobbyService
     , IGameService gameService
     , IConnectionLimiter connectionLimiter
     , IAfkTimerService afkTimer
+    , SessionService sessionCookieService
+    , IHostEnvironment environment
     ) : Hub<IBeloteClient>
 {
+    private readonly bool logSensitiveDetails = environment.IsDevelopment();
 
     public override async Task OnConnectedAsync()
     {
@@ -23,7 +29,10 @@ public class BeloteHub(
 
         if (!connectionLimiter.CanConnect(ipAddress))
         {
-            logger.LogWarning("Connection limit reached for IP {IpAddress}", ipAddress);
+            if (logSensitiveDetails)
+                logger.LogWarning("Connection limit reached for IP {IpAddress}", ipAddress);
+            else
+                logger.LogWarning("Connection limit reached for incoming connection");
             Context.Abort();
             return;
         }
@@ -31,8 +40,11 @@ public class BeloteHub(
         connectionLimiter.TrackConnection(ipAddress, Context.ConnectionId);
         afkTimer.Register(Context.ConnectionId, Context);
 
-        logger.LogInformation("Player connected: {ConnectionId} from {IpAddress}",
-            Context.ConnectionId, ipAddress);
+        if (logSensitiveDetails)
+            logger.LogInformation("Player connected: {ConnectionId} from {IpAddress}",
+                Context.ConnectionId, ipAddress);
+        else
+            logger.LogInformation("Player connected");
 
         await base.OnConnectedAsync();
     }
@@ -45,7 +57,10 @@ public class BeloteHub(
         connectionLimiter.RemoveConnection(ipAddress, Context.ConnectionId);
         afkTimer.Unregister(Context.ConnectionId);
 
-        logger.LogInformation("Player disconnected: {ConnectionId}", Context.ConnectionId);
+        if (logSensitiveDetails)
+            logger.LogInformation("Player disconnected: {ConnectionId}", Context.ConnectionId);
+        else
+            logger.LogInformation("Player disconnected");
 
         await base.OnDisconnectedAsync(exception);
     }
@@ -54,6 +69,9 @@ public class BeloteHub(
 
     public async Task JoinLobby(JoinModel request)
     {
+        if (request is null)
+            throw new HubException("Join request is required.");
+
         try
         {
             request.PlayerName = InputValidator.SanitizePlayerName(request.PlayerName);
@@ -63,24 +81,27 @@ public class BeloteHub(
             throw new HubException(ex.Message);
         }
 
-        var httpContext = Context.GetHttpContext();
-        var cookieSessionId = httpContext?.Request.Cookies["sessionId"];
-        var cookiePlayerName = httpContext?.Request.Cookies["playerName"];
+        var httpContext = Context.GetHttpContext()
+            ?? throw new HubException("Session validation failed.");
 
-        if (!string.IsNullOrEmpty(cookieSessionId) && !string.IsNullOrEmpty(cookiePlayerName))
+        if (!sessionCookieService.TryReadSession(httpContext.Request, out var session))
+            throw new HubException("Session validation failed. Please reconnect and try again.");
+
+        if (!string.Equals(session!.PlayerName, request.PlayerName, StringComparison.OrdinalIgnoreCase))
         {
-            if (cookiePlayerName == request.PlayerName && cookieSessionId != request.SessionId)
-            {
-                logger.LogWarning("Session spoof attempt for player {PlayerName}", request.PlayerName);
-                throw new HubException("Session validation failed. Possible identity spoofing.");
-            }
+            if (logSensitiveDetails)
+                logger.LogWarning("Session identity mismatch for player {PlayerName}", request.PlayerName);
+            else
+                logger.LogWarning("Session validation failed");
+            throw new HubException("Session validation failed. Please refresh and try again.");
         }
 
         Player player = new()
         {
             Name = request.PlayerName,
             LobbyId = request.LobbyId,
-            ConnectionId = Context.ConnectionId
+            ConnectionId = Context.ConnectionId,
+            SessionId = session.SessionId
         };
 
         var joinResult = lobbyService.JoinLobby(player);
@@ -101,8 +122,11 @@ public class BeloteHub(
 
         if (callingPlayer.Name != request.PlayerName)
         {
-            logger.LogWarning("Player {ActualName} tried to leave as {FakeName}",
-                callingPlayer.Name, request.PlayerName);
+            if (logSensitiveDetails)
+                logger.LogWarning("Player {ActualName} tried to leave as {FakeName}",
+                    callingPlayer.Name, request.PlayerName);
+            else
+                logger.LogWarning("Player leave identity mismatch blocked");
             throw new HubException("You can only leave as yourself");
         }
 
@@ -285,15 +309,21 @@ public class BeloteHub(
     {
         if (caller.Name != claimedName)
         {
-            logger.LogWarning("Player {ActualName} tried to {Action} as {FakeName}",
-                caller.Name, action, claimedName);
+            if (logSensitiveDetails)
+                logger.LogWarning("Player {ActualName} tried to {Action} as {FakeName}",
+                    caller.Name, action, claimedName);
+            else
+                logger.LogWarning("Identity mismatch blocked for {Action}", action);
             throw new HubException($"You can only {action} for yourself");
         }
 
         if (lobby.Game.CurrentPlayer?.Name != claimedName)
         {
-            logger.LogWarning("Player {PlayerName} tried to {Action} out of turn. Current: {CurrentPlayer}",
-                claimedName, action, lobby.Game.CurrentPlayer?.Name);
+            if (logSensitiveDetails)
+                logger.LogWarning("Player {PlayerName} tried to {Action} out of turn. Current: {CurrentPlayer}",
+                    claimedName, action, lobby.Game.CurrentPlayer?.Name);
+            else
+                logger.LogWarning("Out-of-turn {Action} attempt blocked", action);
             throw new HubException($"It's not your turn to {action}");
         }
     }
