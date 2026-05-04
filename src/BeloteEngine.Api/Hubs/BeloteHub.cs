@@ -1,3 +1,4 @@
+using BeloteEngine.Api.Contracts;
 using BeloteEngine.Api.Models;
 using BeloteEngine.Api.Services;
 using BeloteEngine.Data.Entities.Models;
@@ -16,7 +17,7 @@ public class BeloteHub(
     , IGameService gameService
     , IConnectionLimiter connectionLimiter
     , IAfkTimerService afkTimer
-    , SessionService sessionCookieService
+    , ISessionService sessionCookieService
     , IHostEnvironment environment
     ) : Hub<IBeloteClient>
 {

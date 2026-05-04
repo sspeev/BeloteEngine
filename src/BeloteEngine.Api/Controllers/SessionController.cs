@@ -1,13 +1,14 @@
 using BeloteEngine.Api.Contracts;
 using BeloteEngine.Api.Models;
 using BeloteEngine.Api.Services;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeloteEngine.Api.Controllers
 {
-    [Route("api/session")]
     [ApiController]
+    [Route("api/[controller]")]
     public sealed class SessionController(
         ISessionService _sessionCookieService) : ControllerBase
     {
@@ -18,8 +19,8 @@ namespace BeloteEngine.Api.Controllers
             return NoContent();
         }
 
-        [HttpPatch]
-        public IActionResult SetSession([FromBody] SessionRequestModel request)
+        [HttpPatch("{playerName}")]
+        public IActionResult SetSession(string playerName)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -27,11 +28,11 @@ namespace BeloteEngine.Api.Controllers
             string sanitizedPlayerName;
             try
             {
-                sanitizedPlayerName = InputValidator.SanitizePlayerName(request.PlayerName);
+                sanitizedPlayerName = InputValidator.SanitizePlayerName(playerName);
             }
             catch (ArgumentException ex)
             {
-                ModelState.AddModelError(nameof(request.PlayerName), ex.Message);
+                ModelState.AddModelError(nameof(playerName), ex.Message);
                 return ValidationProblem(ModelState);
             }
 
