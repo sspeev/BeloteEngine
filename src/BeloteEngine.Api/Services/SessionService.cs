@@ -10,7 +10,7 @@ public sealed class SessionService(
     IDataProtectionProvider dataProtectionProvider) : ISessionService
 {
     public const string CookieName = "belote_session";
-    private static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(1);
+    private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
     private readonly IDataProtector protector =
         dataProtectionProvider.CreateProtector("BeloteEngine.SessionCookie.v1");
 
