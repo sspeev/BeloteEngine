@@ -4,11 +4,11 @@ using BeloteEngine.Services.Models;
 
 namespace BeloteEngine.Unit.Tests.Services;
 
-internal sealed class FakeGameService : IGameService
+internal sealed class MockedGameService : IGameService
 {
     private readonly Func<Game> _gameFactory;
 
-    public FakeGameService(Func<Game>? gameFactory = null)
+    public MockedGameService(Func<Game>? gameFactory = null)
     {
         _gameFactory = gameFactory ?? (() => new Game());
     }
