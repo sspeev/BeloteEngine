@@ -1,4 +1,4 @@
-﻿using BeloteEngine.Api.Models;
+using BeloteEngine.Api.Models;
 using BeloteEngine.Services.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,9 +12,10 @@ namespace BeloteEngine.Api.Controllers;
 [Produces(MediaTypeNames.Application.Json)]
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 public sealed class LobbyController(
-    ILobbyService lobbyService
+    ILobbyService _lobbyService
 ) : ControllerBase
 {
+
     [HttpPost("create")]
     public async Task<IActionResult> CreateLobby([FromBody] CreateRequestModel request)
     {
@@ -26,7 +27,7 @@ public sealed class LobbyController(
 
         try
         {
-            var lobby = lobbyService.CreateLobby(request.LobbyName, ipAddress);
+            var lobby = _lobbyService.CreateLobby(request.LobbyName, ipAddress);
 
             return CreatedAtAction(
                 nameof(GetLobby),
@@ -45,7 +46,7 @@ public sealed class LobbyController(
     [HttpGet("listLobbies")]
     public IActionResult GetAvailableLobbies()
     {
-        var lobbies = lobbyService.GetAvailableLobbies();
+        var lobbies = _lobbyService.GetAvailableLobbies();
         return Ok(new LobbyResponse
         {
             Lobbies = [.. lobbies]
@@ -57,7 +58,7 @@ public sealed class LobbyController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetLobby(int lobbyId)
     {
-        var lobby = lobbyService.GetLobby(lobbyId);
+        var lobby = _lobbyService.GetLobby(lobbyId);
         if (lobby == null)
             return NotFound("Lobby not found.");
 

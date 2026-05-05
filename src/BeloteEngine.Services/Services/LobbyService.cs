@@ -1,4 +1,4 @@
-﻿using BeloteEngine.Data.Entities.Models;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Contracts;
 using BeloteEngine.Services.Models;
 using BeloteEngine.Services.Security;
@@ -9,11 +9,14 @@ using static System.StringComparison;
 
 namespace BeloteEngine.Services.Services;
 
-public class LobbyService : ILobbyService
+public class LobbyService(
+    IGameService gameService,
+    ILogger<LobbyService> logger,
+    CachingService cachingService) : ILobbyService
 {
-    private readonly IGameService _gameService;
-    private readonly ILogger<LobbyService> _logger;
-    private readonly CachingService _cachingService;
+    private readonly IGameService _gameService = gameService;
+    private readonly ILogger<LobbyService> _logger = logger;
+    private readonly CachingService _cachingService = cachingService;
     private readonly ConcurrentDictionary<int, Lobby> _lobbies = new();
     private readonly object _lockObject = new();
 
@@ -22,27 +25,12 @@ public class LobbyService : ILobbyService
 
     private const int MAX_TOTAL_LOBBIES = 100;
     private const int MAX_LOBBIES_PER_IP = 1;
-    private readonly Timer _cleanupTimer;
-
-    public LobbyService(
-        IGameService gameService,
-        ILogger<LobbyService> logger,
-        CachingService cachingService)
-    {
-        _gameService = gameService;
-        _logger = logger;
-        _cachingService = cachingService;
-
-        // Start cleanup timer (every 5 minutes)
-        _cleanupTimer = new Timer(
-            _ => CleanupAbandonedLobbies(),
-            null,
-            TimeSpan.FromMinutes(5),
-            TimeSpan.FromMinutes(5));
-    }
+    private readonly object _cleanupTimerLock = new();
+    private Timer? _cleanupTimer;
 
     public Lobby CreateLobby(string lobbyName, string ipAddress)
     {
+        EnsureCleanupTimerStarted();
         lobbyName = InputValidator.SanitizeLobbyName(lobbyName);
         if (_lobbies.Count >= MAX_TOTAL_LOBBIES)
         {
@@ -93,6 +81,7 @@ public class LobbyService : ILobbyService
     // Overload for backward compatibility
     public Lobby CreateLobby(string lobbyName)
     {
+        EnsureCleanupTimerStarted();
         return CreateLobby(lobbyName, "unknown");
     }
 
@@ -138,6 +127,7 @@ public class LobbyService : ILobbyService
 
     public JoinResult JoinLobby(Player player)
     {
+        EnsureCleanupTimerStarted();
         var lobbyId = player.LobbyId ?? 0;
         if (lobbyId == 0)
         {
@@ -161,21 +151,38 @@ public class LobbyService : ILobbyService
         {
             CompactPlayers(lobby.ConnectedPlayers);
 
+            var existingPlayer = lobby.ConnectedPlayers.FirstOrDefault(p => string.Equals(p.Name, player.Name, OrdinalIgnoreCase));
+            if (existingPlayer != null)
+            {
+                if (!string.IsNullOrWhiteSpace(existingPlayer.SessionId) &&
+                    !string.Equals(existingPlayer.SessionId, player.SessionId, Ordinal))
+                {
+                    return new JoinResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Player name is already in use."
+                    };
+                }
+
+                existingPlayer.ConnectionId = player.ConnectionId;
+                existingPlayer.SessionId = player.SessionId;
+                existingPlayer.Status = Connected;
+                lobby.UpdateActivity();
+                InvalidateLobbyCache(lobbyId);
+
+                return new JoinResult
+                {
+                    Success = true,
+                    Lobby = lobby
+                };
+            }
+
             if (IsFull(lobbyId))
             {
                 return new JoinResult
                 {
                     Success = false,
                     ErrorMessage = "Lobby is full."
-                };
-            }
-
-            if (lobby.ConnectedPlayers.Any(p => string.Equals(p.Name, player.Name, OrdinalIgnoreCase)))
-            {
-                return new JoinResult
-                {
-                    Success = false,
-                    ErrorMessage = "Player already connected."
                 };
             }
 
@@ -196,6 +203,7 @@ public class LobbyService : ILobbyService
 
     public bool LeaveLobby(Player player, int lobbyId)
     {
+        EnsureCleanupTimerStarted();
         if (!_lobbies.TryGetValue(lobbyId, out var lobby))
         {
             return false;
@@ -215,18 +223,29 @@ public class LobbyService : ILobbyService
             lobby.UpdateActivity();
             InvalidateLobbyCache(lobbyId);
 
+            if (lobby.ConnectedPlayers.Count == 0)
+            {
+                if (_lobbies.TryRemove(lobbyId, out _))
+                {
+                    OnLobbyRemoved(lobbyId);
+                    _logger.LogInformation("Removed empty lobby {LobbyId} immediately on player leave.", lobbyId);
+                }
+            }
+
             return removed > 0;
         }
     }
 
     public Lobby GetLobby(int lobbyId)
     {
+        EnsureCleanupTimerStarted();
         _lobbies.TryGetValue(lobbyId, out var lobby);
         return lobby;
     }
 
     public List<LobbyInfoModel> GetAvailableLobbies()
     {
+        EnsureCleanupTimerStarted();
         return [.. _lobbies.Values
             .Select(l =>
             {
@@ -247,6 +266,7 @@ public class LobbyService : ILobbyService
 
     public bool IsFull(int lobbyId)
     {
+        EnsureCleanupTimerStarted();
         if (!_lobbies.TryGetValue(lobbyId, out var lobby))
             return false;
 
@@ -256,6 +276,7 @@ public class LobbyService : ILobbyService
 
     public void ResetLobby(int lobbyId)
     {
+        EnsureCleanupTimerStarted();
         if (_lobbies.TryGetValue(lobbyId, out var lobby))
         {
             lock (_lockObject)
@@ -274,5 +295,20 @@ public class LobbyService : ILobbyService
     {
         var cacheKey = $"{lobbyId}";
         _cachingService.Remove(cacheKey);
+    }
+
+    private void EnsureCleanupTimerStarted()
+    {
+        if (_cleanupTimer is not null)
+            return;
+
+        lock (_cleanupTimerLock)
+        {
+            _cleanupTimer ??= new Timer(
+                _ => CleanupAbandonedLobbies(),
+                null,
+                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMinutes(5));
+        }
     }
 }
