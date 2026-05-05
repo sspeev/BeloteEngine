@@ -5,3 +5,6 @@ dotnet run --project src/BeloteEngine.Api/BeloteEngine.Api.csproj
 Delay after last card
 kontra indicator
 hand sort
+
+
+lauchSettings is only for local development. It tells IDE or dotnet run which env to run

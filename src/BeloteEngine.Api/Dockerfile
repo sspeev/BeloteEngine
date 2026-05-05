@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 8081
+EXPOSE 8080
 
 # ── Build stage ──────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
@@ -41,8 +41,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Tell Kestrel to listen on plain HTTP inside the container.
-# HTTPS termination is handled by the reverse proxy (fly.io / nginx) in front.
-ENV ASPNETCORE_URLS=http://+:8081
-ENV ASPNETCORE_HTTP_PORTS=8081
+# HTTPS termination is handled by the platform reverse proxy (for example Cloud Run).
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_HTTP_PORTS=8080
 
 ENTRYPOINT ["dotnet", "BeloteEngine.Api.dll"]

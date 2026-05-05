@@ -1,11 +1,21 @@
-using Microsoft.AspNetCore.DataProtection;
 using BeloteEngine.Services.Security;
+using BeloteEngine.Api.Contracts;
+using Microsoft.AspNetCore.DataProtection;
 using System.Security.Cryptography;
 using System.Text.Json;
-using BeloteEngine.Api.Contracts;
 
 namespace BeloteEngine.Api.Services;
 
+/// <summary>
+/// Provides functionality for issuing, reading, and clearing secure session cookies for player authentication within
+/// the application.
+/// </summary>
+/// <remarks>SessionService manages session cookies that store player identity and expiration information in a
+/// secure, tamper-resistant format. The service ensures that session cookies are protected using data protection APIs
+/// and enforces a fixed session lifetime. This class is intended for use in web applications that require secure,
+/// stateless session management for players.</remarks>
+/// <param name="dataProtectionProvider">The data protection provider used to create a data protector for encrypting and decrypting session cookie payloads.
+/// Cannot be null.</param>
 public sealed class SessionService(
     IDataProtectionProvider dataProtectionProvider) : ISessionService
 {

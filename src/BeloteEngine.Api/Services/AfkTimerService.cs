@@ -16,7 +16,7 @@ public sealed class AfkTimerService(
     : IAfkTimerService
 {
     private const int DefaultAfkSeconds = 30;
-    private const int GraceMs           = 300;
+    private const int GraceMs = 300;
 
     private int AfkSeconds =>
         configuration.GetValue<int?>("AfkTimeoutSeconds") ?? DefaultAfkSeconds;
