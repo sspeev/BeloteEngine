@@ -5,7 +5,11 @@ namespace BeloteEngine.Integration.Tests
         [Fact]
         public void Test1()
         {
+            //Arrange
 
+            //Act
+
+            //Assert
         }
     }
 }

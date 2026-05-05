@@ -4,27 +4,21 @@ using BeloteEngine.Services.Models;
 using BeloteEngine.Services.Security;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using static BeloteEngine.Data.Entities.Enums.Status;
 using static System.StringComparison;
+using static BeloteEngine.Data.Entities.Enums.Status;
+using static BeloteEngine.Services.Constants.LobbyConstants;
 
 namespace BeloteEngine.Services.Services;
 
 public class LobbyService(
-    IGameService gameService,
-    ILogger<LobbyService> logger,
-    CachingService cachingService) : ILobbyService
+    IGameService _gameService
+    , ILogger<LobbyService> _logger
+    , CachingService _cachingService) : ILobbyService
 {
-    private readonly IGameService _gameService = gameService;
-    private readonly ILogger<LobbyService> _logger = logger;
-    private readonly CachingService _cachingService = cachingService;
     private readonly ConcurrentDictionary<int, Lobby> _lobbies = new();
-    private readonly object _lockObject = new();
-
     private readonly ConcurrentDictionary<string, int> _lobbyCountByIp = new();
     private readonly ConcurrentDictionary<int, string> _lobbyToIp = new();
-
-    private const int MAX_TOTAL_LOBBIES = 100;
-    private const int MAX_LOBBIES_PER_IP = 1;
+    private readonly object _lockObject = new();
     private readonly object _cleanupTimerLock = new();
     private Timer? _cleanupTimer;
 
@@ -32,50 +26,52 @@ public class LobbyService(
     {
         EnsureCleanupTimerStarted();
         lobbyName = InputValidator.SanitizeLobbyName(lobbyName);
-        if (_lobbies.Count >= MAX_TOTAL_LOBBIES)
+        lock (_lockObject)
         {
-            throw new InvalidOperationException("Server is full. Please try again later.");
+            if (_lobbies.Count >= MAX_TOTAL_LOBBIES)
+            {
+                throw new InvalidOperationException("Server is full. Please try again later.");
+            }
+
+            if (!_lobbyCountByIp.TryGetValue(ipAddress, out var currentCount))
+            {
+                currentCount = 0;
+            }
+
+            if (currentCount >= MAX_LOBBIES_PER_IP)
+            {
+                throw new InvalidOperationException(
+                    $"You can only create {MAX_LOBBIES_PER_IP} lobbies at a time.");
+            }
+
+            var lobby = new Lobby
+            {
+                Game = _gameService.Creator(),
+                Name = lobbyName,
+                CreatedAt = DateTime.UtcNow,
+                LastActivity = DateTime.UtcNow
+            };
+
+            while (true)
+            {
+                var lobbyId = Random.Shared.Next(1000, 9999);
+                lobby.Id = lobbyId;
+
+                if (!_lobbies.TryAdd(lobbyId, lobby))
+                {
+                    continue;
+                }
+
+                _lobbyToIp[lobbyId] = ipAddress;
+                _lobbyCountByIp[ipAddress] = currentCount + 1;
+                _cachingService.Remove($"{lobbyId}");
+
+                _logger.LogInformation("Created lobby {LobbyId} '{LobbyName}' from IP {IpAddress}",
+                    lobbyId, lobbyName, ipAddress);
+
+                return lobby;
+            }
         }
-
-        // Per-IP limit
-        var currentCount = _lobbyCountByIp.GetOrAdd(ipAddress, 0);
-        if (currentCount >= MAX_LOBBIES_PER_IP)
-        {
-            throw new InvalidOperationException(
-                $"You can only create {MAX_LOBBIES_PER_IP} lobbies at a time.");
-        }
-
-        // Create lobby
-        var lobby = new Lobby
-        {
-            Game = _gameService.Creator(),
-            Name = lobbyName,
-            CreatedAt = DateTime.UtcNow,
-            LastActivity = DateTime.UtcNow
-        };
-
-        // Generate unique ID
-        int lobbyId;
-        do
-        {
-            lobbyId = Random.Shared.Next(1000, 9999);
-        } while (_lobbies.ContainsKey(lobbyId));
-
-        lobby.Id = lobbyId;
-        _lobbies.TryAdd(lobbyId, lobby);
-        _lobbyToIp[lobbyId] = ipAddress;
-
-        // Increment count for this IP
-        _lobbyCountByIp.AddOrUpdate(ipAddress, 1, (key, count) => count + 1);
-
-        // Cache the new lobby
-        var cacheKey = $"{lobbyId}";
-        _cachingService.Remove(cacheKey);
-
-        _logger.LogInformation("Created lobby {LobbyId} '{LobbyName}' from IP {IpAddress}",
-            lobbyId, lobbyName, ipAddress);
-
-        return lobby;
     }
 
     // Overload for backward compatibility
