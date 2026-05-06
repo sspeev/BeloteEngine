@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="BeloteEngine.Integration.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="..\..\.dockerignore">
       <Link>.dockerignore</Link>
     </Content>
