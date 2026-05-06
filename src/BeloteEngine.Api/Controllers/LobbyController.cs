@@ -22,7 +22,6 @@ public sealed class LobbyController(
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Get IP address
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
         try
