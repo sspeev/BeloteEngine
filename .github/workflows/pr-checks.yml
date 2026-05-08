@@ -26,4 +26,11 @@ jobs:
         run: dotnet build BeloteEngine.sln --configuration Release --no-restore /p:SpaProxyLaunchEnabled=false
 
       - name: Run tests (Unit, Integration, E2E)
-        run: dotnet test BeloteEngine.sln --no-build --verbosity normal
+        run: dotnet test BeloteEngine.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results/
