@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.18" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
@@ -21,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\BeloteEngine.Services\BeloteEngine.Services.csproj" />
+    <ProjectReference Include="..\..\src\BeloteEngine.Api\BeloteEngine.Api.csproj" />
   </ItemGroup>
 
 </Project>
