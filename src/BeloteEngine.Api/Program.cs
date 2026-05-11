@@ -1,8 +1,5 @@
+using BeloteEngine.Api.Extensions;
 using BeloteEngine.Api.Hubs;
-using BeloteEngine.Api.Services;
-using BeloteEngine.Services.Contracts;
-using BeloteEngine.Services.Rules;
-using BeloteEngine.Services.Services;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json;
@@ -10,12 +7,20 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var cloudRunPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(cloudRunPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{cloudRunPort}");
+}
+
 builder.Services.AddMemoryCache(options =>
 {
     options.SizeLimit = 100;
     options.CompactionPercentage = 0.25;
     options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
+
+builder.Services.AddDataProtection();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -31,7 +36,7 @@ builder.Services.AddRateLimiter(options =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         await context.HttpContext.Response.WriteAsync(
-            "Too many requests.  Please try again later.",
+            "Too many requests. Please try again later.",
             cancellationToken
         );
     };
@@ -92,15 +97,8 @@ builder.Services.AddCors(options =>
         }
     });
 });
+builder.Services.AddApplicationServices();
 
-builder.Services.AddSingleton<ILobbyService, LobbyService>();
-builder.Services.AddSingleton<IGameService, GameService>();
-builder.Services.AddSingleton<IConnectionLimiter, ConnectionLimiter>();
-builder.Services.AddSingleton<ITrickEvaluator, TrickEvaluator>();
-builder.Services.AddSingleton<IPlayValidator, PlayValidator>();
-builder.Services.AddSingleton<IScoreCalculator, ScoreCalculator>();
-builder.Services.AddSingleton<CachingService>();
-builder.Services.AddSingleton<IAfkTimerService, AfkTimerService>();
 builder.Services.AddLogging(logging =>
 {
     logging.ClearProviders();
@@ -142,8 +140,8 @@ else
     app.UseHsts();
 }
 
-// Skip HTTPS redirection inside containers — TLS is terminated by the reverse proxy.
-// DOTNET_RUNNING_IN_CONTAINER is set automatically by the .NET Docker base image.
+/// Skip HTTPS redirection inside containers — TLS is terminated by the reverse proxy.
+/// DOTNET_RUNNING_IN_CONTAINER is set automatically by the .NET Docker base image.
 var isRunningInContainer = app.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER");
 if (!isRunningInContainer)
 {
@@ -153,6 +151,7 @@ app.UseCors("AllowFrontend");
 app.UseRouting();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
+app.UseRateLimiter();
 
 // Global error handling endpoint
 app.Map("/error", (HttpContext context) =>
@@ -169,7 +168,7 @@ app.MapHub<BeloteHub>("/beloteHub", options =>
 
 try
 {
-    logger.LogInformation("Belote Engine API started successfully on {Urls}", 
+    logger.LogInformation("Belote Engine API started successfully on {Urls}",
         string.Join(", ", app.Urls));
     
     await app.RunAsync();

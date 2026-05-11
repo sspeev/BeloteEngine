@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.3.11512.155 d18.3
+VisualStudioVersion = 18.3.11512.155
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Data", "src\BeloteEngine.Data\BeloteEngine.Data.csproj", "{24CF43A6-9F78-40CA-BE27-DB0EC00D7020}"
 EndProject
@@ -16,9 +16,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Services", "sr
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3A60AC33-BEDE-48F7-8E63-042D5E6AB8A3}"
-	ProjectSection(SolutionItems) = preProject
-		compose.yaml = compose.yaml
-	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Unit.Tests", "tests\BeloteEngine.Unit.Tests\BeloteEngine.Unit.Tests.csproj", "{58A2BB60-F04F-4D2B-BA52-CFE05AAF2C49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.Integration.Tests", "tests\BeloteEngine.Integration.Tests\BeloteEngine.Integration.Tests.csproj", "{8A3C71F2-60EC-4AE0-B36F-67546F16634F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeloteEngine.EndToEnd.Tests", "tests\BeloteEngine.EndToEnd.Tests\BeloteEngine.EndToEnd.Tests.csproj", "{92A0A9F7-DA2F-4CB0-8E93-BFE48AF77F29}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +41,18 @@ Global
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E63B5D3-3CCF-45E1-9900-2CBDFFC9D8CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58A2BB60-F04F-4D2B-BA52-CFE05AAF2C49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58A2BB60-F04F-4D2B-BA52-CFE05AAF2C49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58A2BB60-F04F-4D2B-BA52-CFE05AAF2C49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58A2BB60-F04F-4D2B-BA52-CFE05AAF2C49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A3C71F2-60EC-4AE0-B36F-67546F16634F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A3C71F2-60EC-4AE0-B36F-67546F16634F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A3C71F2-60EC-4AE0-B36F-67546F16634F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A3C71F2-60EC-4AE0-B36F-67546F16634F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92A0A9F7-DA2F-4CB0-8E93-BFE48AF77F29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92A0A9F7-DA2F-4CB0-8E93-BFE48AF77F29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92A0A9F7-DA2F-4CB0-8E93-BFE48AF77F29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92A0A9F7-DA2F-4CB0-8E93-BFE48AF77F29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

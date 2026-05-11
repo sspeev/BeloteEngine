@@ -369,3 +369,4 @@ FodyWeavers.xsd
 
 # JetBrains IDEs (Rider, IntelliJ)
 .idea/
+scripts.txt

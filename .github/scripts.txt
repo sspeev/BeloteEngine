@@ -1,2 +1,38 @@
 dotnet run --project src/BeloteEngine.Api/BeloteEngine.Api.csproj 
 --launch-profile https
+
+
+Delay after last card
+kontra indicator
+hand sort
+
+
+lauchSettings is only for local development. It tells IDE or dotnet run which env to run
+
+
+That’s a great starting point! Since you’re looking at your belote-engine service in europe-west8, let’s walk through what’s happening in this specific corner of Google Cloud.
+
+Think of Cloud Run as a "managed home" for your .NET Docker container. Here is a walkthrough of the key concepts you are seeing on your screen:
+
+1. Revisions (The "Undo" Button)
+On the page you're viewing, every time you click Deploy, Cloud Run creates a new Revision.
+
+Why it's cool: It’s like a save point in a game. If you deploy a new version of your .NET code and it has a bug, you can instantly tell Cloud Run to send 100% of traffic back to the previous, working revision.
+Traffic Splitting: You can even send 10% of users to a new version to "test the waters" before moving everyone over.
+2. Scaling (Your Current Setup)
+Your service is currently configured with a Minimum of 1 instance.
+
+The Pro: Because you have a minimum of 1, your .NET app is always "warm" and ready to respond instantly. There's no "cold start" delay.
+The Con: You are billed for that one instance as long as it's active, even if no one is using the app.
+The Max: It's set to scale up to 3 instances automatically if you suddenly get a surge of traffic.
+3. Automatic Deployment (Cloud Build)
+I noticed you have a Cloud Build trigger linked to this service.
+
+This means you don't usually need to manually upload Docker images. When you push your code to your repository (like GitHub or GitLab), Google Cloud automatically catches that change, builds the new Docker image, and updates the service for you.
+4. Networking & Ports
+Your .NET app is configured to listen on Port 8081. Cloud Run takes that internal port and maps it to a secure, public https://... URL automatically. You don't have to worry about SSL certificates or firewalls; Google handles that "front door" for you.
+
+5. Monitoring
+If you click the LOGS tab at the top of your Cloud Run page, you'll see the direct output from your .NET application (anything you send to Console.WriteLine or your logger). It's the best place to go if your app isn't behaving as expected.
+
+Since you're using .NET, are you planning to connect this to a database like Cloud SQL, or is it more of a standalone API?
