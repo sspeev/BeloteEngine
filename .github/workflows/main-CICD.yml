@@ -103,7 +103,7 @@ jobs:
 
       - name: Build and push Docker image
         env:
-          IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine
+          IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/beloteengine/belote-engine
         run: |
           docker build \
             -t $IMAGE:${{ github.sha }} \
@@ -118,20 +118,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
-          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine:${{ github.sha }}
-          env_vars: |
-            ASPNETCORE_ENVIRONMENT=Production
-            AllowedOrigins=https://online-belote-sspeevs-projects.vercel.app
-            AllowedHosts=*
-          flags: |
-            --allow-unauthenticated
-            --port=8081
-            --min-instances=0
-            --max-instances=10
-            --memory=256Mi
-            --cpu=1
-            --timeout=300
-            --session-affinity
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/beloteengine/belote-engine:${{ github.sha }}
 
       - name: Show deployed URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
