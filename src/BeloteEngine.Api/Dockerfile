@@ -9,18 +9,18 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy only project files first for layer-cached restore
-COPY ["src/BeloteEngine.Api/BeloteEngine.Api.csproj",      "src/BeloteEngine.Api/"]
-COPY ["src/BeloteEngine.Services/BeloteEngine.Services.csproj", "src/BeloteEngine.Services/"]
-COPY ["src/BeloteEngine.Data/BeloteEngine.Data.csproj",    "src/BeloteEngine.Data/"]
+COPY ["BeloteEngine.Api/BeloteEngine.Api.csproj",      "BeloteEngine.Api/"]
+COPY ["BeloteEngine.Services/BeloteEngine.Services.csproj", "BeloteEngine.Services/"]
+COPY ["BeloteEngine.Data/BeloteEngine.Data.csproj",    "BeloteEngine.Data/"]
 
 # Restore with SpaProxy disabled so it doesn't try to launch npm in CI/Docker
-RUN dotnet restore "src/BeloteEngine.Api/BeloteEngine.Api.csproj" \
+RUN dotnet restore "BeloteEngine.Api/BeloteEngine.Api.csproj" \
     /p:SpaProxyLaunchEnabled=false
 
 # Copy the rest of the source
 COPY . .
 
-WORKDIR "/src/src/BeloteEngine.Api"
+WORKDIR "/src/BeloteEngine.Api"
 RUN dotnet build "BeloteEngine.Api.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/build \

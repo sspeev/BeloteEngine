@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build production Docker image
-        run: docker build -t beloteengine:prod .
+        run: docker build -f src/BeloteEngine.Api/Dockerfile -t beloteengine:prod src
 
       - name: Test container starts and is healthy
         run: |
@@ -58,7 +58,7 @@ jobs:
             -e ASPNETCORE_ENVIRONMENT=Production \
             -e AllowedOrigins=http://localhost \
             -e AllowedHosts="*" \
-            -p 8081:8081 \
+            -p 8081:8080 \
             beloteengine:prod
 
           echo "Waiting for container to be healthy..."
@@ -103,12 +103,13 @@ jobs:
 
       - name: Build and push Docker image
         env:
-          IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine
+          IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/beloteengine/belote-engine
         run: |
           docker build \
+            -f src/BeloteEngine.Api/Dockerfile \
             -t $IMAGE:${{ github.sha }} \
             -t $IMAGE:latest \
-            .
+            src
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
@@ -118,20 +119,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
-          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/belote/beloteengine:${{ github.sha }}
-          env_vars: |
-            ASPNETCORE_ENVIRONMENT=Production
-            AllowedOrigins=https://online-belote-sspeevs-projects.vercel.app
-            AllowedHosts=*
-          flags: |
-            --allow-unauthenticated
-            --port=8081
-            --min-instances=0
-            --max-instances=10
-            --memory=256Mi
-            --cpu=1
-            --timeout=300
-            --session-affinity
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/beloteengine/belote-engine:${{ github.sha }}
 
       - name: Show deployed URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

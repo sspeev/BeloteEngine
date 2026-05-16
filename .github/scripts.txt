@@ -1,6 +1,7 @@
 dotnet run --project src/BeloteEngine.Api/BeloteEngine.Api.csproj 
 --launch-profile https
 
+running docker profile outside Visual Studio 2026 is not possible
 
 Delay after last card
 kontra indicator
