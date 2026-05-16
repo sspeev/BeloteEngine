@@ -27,13 +27,17 @@ public sealed class SessionService(
     public void IssueSessionCookie(HttpRequest request, HttpResponse response)
     {
         var expiresAt = DateTimeOffset.UtcNow.Add(SessionLifetime);
-        var sessionId = TryReadSessionId(request, out var existingSessionId)
-            ? existingSessionId
+        var hasExisting = TryReadPayload(request, out var existingPayload);
+
+        var sessionId = hasExisting && !string.IsNullOrWhiteSpace(existingPayload!.SessionId)
+            ? existingPayload.SessionId
             : Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+        var playerName = hasExisting ? existingPayload!.PlayerName : null;
 
         var payload = new SessionCookiePayload(
             sessionId,
-            null,
+            playerName,
             expiresAt);
 
         var protectedPayload = protector.Protect(JsonSerializer.Serialize(payload));
