@@ -99,15 +99,10 @@ public class BeloteHub(
         var httpContext = Context.GetHttpContext()
             ?? throw new HubException("Session validation failed.");
 
-        logger.LogInformation("🔍 JoinLobby called. Checking session...");
-
         if (!sessionCookieService.TryReadSession(httpContext.Request, out var session))
         {
-            logger.LogWarning("❌ Session validation failed for player {PlayerName}", request.PlayerName);
             throw new HubException("Session validation failed. Please reconnect and try again.");
         }
-
-        logger.LogInformation("✅ Session validated for {PlayerName}", session.PlayerName);
 
         if (!string.Equals(session!.PlayerName, request.PlayerName, StringComparison.OrdinalIgnoreCase))
         {
@@ -182,12 +177,10 @@ public class BeloteHub(
     {
         var lobby = GetLobbyOrThrow(lobbyId);
         GetCallerOrThrow(lobby); // just validate presence
-
         gameService.GameInitializer(lobby);
         gameService.InitialPhase(lobby);
         lobby.Game.Splitter = lobby.Game.CurrentPlayer;
         lobby.UpdateActivity();
-
         logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
         await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
     }

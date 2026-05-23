@@ -1,4 +1,5 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Api.Models;
+using BeloteEngine.Data.Entities.Models;
 
 namespace BeloteEngine.Api.Hubs;
 
@@ -13,7 +14,7 @@ public interface IBeloteClient
 
     Task LobbyDeleted(int lobbyId);
 
-    Task GameStarted(Lobby lobby);
+    Task GameStarted(object lobby);
 
     Task CardsDealt(Lobby lobby, string dealerName, string bidderName);
 
