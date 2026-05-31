@@ -19,15 +19,15 @@ internal sealed class MockedGameService : IGameService
 
     public Game Gameplay(Lobby lobby) => throw new NotSupportedException();
 
-    public Player PlayerToSplitCards(Queue<Player> players) => throw new NotSupportedException();
+    public Player PlayerToSplitCards(List<Player> players) => throw new NotSupportedException();
 
-    public Player PlayerToDealCards(Queue<Player> players) => throw new NotSupportedException();
+    public Player PlayerToDealCards(List<Player> players) => throw new NotSupportedException();
 
-    public Player PlayerToStartAnnounceAndPlay(Queue<Player> players) => throw new NotSupportedException();
+    public Player PlayerToStartAnnounceAndPlay(List<Player> players) => throw new NotSupportedException();
 
     public Player GetNextBidder(Lobby lobby) => throw new NotSupportedException();
 
-    public Player GetNextPlayer(Queue<Player> players) => throw new NotSupportedException();
+    public Player GetNextPlayer(List<Player> players) => throw new NotSupportedException();
 
     public bool IsGameOver(int team1Score, int team2Score) => throw new NotSupportedException();
 

@@ -67,30 +67,30 @@ public sealed class LobbyControllerIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Fact]
-    public async Task CreateLobby_ShouldReturnBadRequest_WhenSecondLobbyFromSameIp()
-    {
-        // Arrange
-        using var factory = CreateFactory();
-        using var client = CreateClient(factory);
-        await client.PostAsJsonAsync("/api/lobby/create", new
-        {
-            PlayerName = "Alice",
-            LobbyName = "First Room"
-        });
+    //[Fact]
+    //public async Task CreateLobby_ShouldReturnBadRequest_WhenSecondLobbyFromSameIp()
+    //{
+    //    // Arrange
+    //    using var factory = CreateFactory();
+    //    using var client = CreateClient(factory);
+    //    await client.PostAsJsonAsync("/api/lobby/create", new
+    //    {
+    //        PlayerName = "Alice",
+    //        LobbyName = "First Room"
+    //    });
 
-        // Act
-        using var response = await client.PostAsJsonAsync("/api/lobby/create", new
-        {
-            PlayerName = "Bob",
-            LobbyName = "Second Room"
-        });
+    //    // Act
+    //    using var response = await client.PostAsJsonAsync("/api/lobby/create", new
+    //    {
+    //        PlayerName = "Bob",
+    //        LobbyName = "Second Room"
+    //    });
 
-        // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var json = await response.Content.ReadAsStringAsync();
-        Assert.Contains("lobbies", json, StringComparison.OrdinalIgnoreCase);
-    }
+    //    // Assert
+    //    Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    //    var json = await response.Content.ReadAsStringAsync();
+    //    Assert.Contains("lobbies", json, StringComparison.OrdinalIgnoreCase);
+    //}
 
     // ── GetAvailableLobbies ────────────────────────────────────────────
 

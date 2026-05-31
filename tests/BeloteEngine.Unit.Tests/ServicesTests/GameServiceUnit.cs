@@ -125,6 +125,21 @@ public class GameServiceUnit
         Assert.True(lobby.GameStarted);
     }
 
+    [Fact]
+    public void Lobby_ShouldSerializeToJsonWithoutCycles()
+    {
+        //Arrange
+        var service = CreateService();
+        var lobby = CreateBiddingLobby(service);
+
+        //Act
+        var json = System.Text.Json.JsonSerializer.Serialize(lobby);
+
+        //Assert
+        Assert.NotNull(json);
+        Assert.Contains("game", json.ToLower());
+    }
+
     // ── InitialPhase ───────────────────────────────────────────────────
 
     [Fact]
@@ -207,15 +222,15 @@ public class GameServiceUnit
     {
         //Arrange
         var service = CreateService();
-        var players = new Queue<Player>();
+        var players = new List<Player>();
         var p1 = new Player { Name = "P1" };
         var p2 = new Player { Name = "P2" };
         var p3 = new Player { Name = "P3" };
         var p4 = new Player { Name = "P4" };
-        players.Enqueue(p1);
-        players.Enqueue(p2);
-        players.Enqueue(p3);
-        players.Enqueue(p4);
+        players.Add(p1);
+        players.Add(p2);
+        players.Add(p3);
+        players.Add(p4);
 
         //Act
         var first = service.GetNextPlayer(players);
@@ -541,11 +556,11 @@ public class GameServiceUnit
         //Arrange
         var service = CreateService();
         var lobby = CreateBiddingLobby(service);
-        var firstSplitter = lobby.Game.RoundQueue.Peek().Name;
+        var firstSplitter = lobby.Game.RoundQueue[0].Name;
 
         //Act
         service.GameReset(lobby);
-        var secondRoundFront = lobby.Game.RoundQueue.Peek().Name;
+        var secondRoundFront = lobby.Game.RoundQueue[0].Name;
 
         //Assert
         Assert.NotEqual(firstSplitter, secondRoundFront);

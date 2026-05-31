@@ -82,7 +82,7 @@ public class BeloteHub(
 
     // ── Lobby ─────────────────────────────────────────────────────────────────
 
-    public async Task JoinLobby(JoinModel request)
+    public async Task<Lobby> JoinLobby(JoinModel request)
     {
         if (request is null)
             throw new HubException("Join request is required.");
@@ -130,6 +130,8 @@ public class BeloteHub(
 
         var updatedLobby = lobbyService.GetLobby(request.LobbyId);
         await Clients.Group($"Lobby_{request.LobbyId}").PlayerJoined(updatedLobby);
+
+        return updatedLobby;
     }
 
     public async Task LeaveLobby(LeaveRequestModel request)
