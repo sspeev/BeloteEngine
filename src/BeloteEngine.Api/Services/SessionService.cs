@@ -177,15 +177,14 @@ public sealed class SessionService(
 
     private CookieOptions BuildCookieOptions(HttpRequest request, DateTimeOffset expiresAt)
     {
-        var isSecureRequest = request.IsHttps;
-
-        // In development, use Lax to avoid browser blocking with localhost on different ports
-        var sameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : (isSecureRequest ? SameSiteMode.None : SameSiteMode.Lax);
+        var isDevelopment = _environment.IsDevelopment();
+        var isSecure = !isDevelopment;
+        var sameSite = isDevelopment ? SameSiteMode.Lax : SameSiteMode.None;
 
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = isSecureRequest,
+            Secure = isSecure,
             SameSite = sameSite,
             Expires = expiresAt,
             Path = "/",
@@ -195,13 +194,14 @@ public sealed class SessionService(
 
     private CookieOptions BuildDeleteCookieOptions(HttpRequest request)
     {
-        var isSecureRequest = request.IsHttps;
-        var sameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : (isSecureRequest ? SameSiteMode.None : SameSiteMode.Lax);
+        var isDevelopment = _environment.IsDevelopment();
+        var isSecure = !isDevelopment;
+        var sameSite = isDevelopment ? SameSiteMode.Lax : SameSiteMode.None;
 
         return new CookieOptions
         {
             Path = "/",
-            Secure = isSecureRequest,
+            Secure = isSecure,
             SameSite = sameSite
         };
     }

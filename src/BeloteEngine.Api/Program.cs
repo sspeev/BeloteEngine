@@ -147,8 +147,8 @@ if (!isRunningInContainer)
 {
     app.UseHttpsRedirection();
 }
-app.UseCors("AllowFrontend");
 app.UseRouting();
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.UseRateLimiter();
