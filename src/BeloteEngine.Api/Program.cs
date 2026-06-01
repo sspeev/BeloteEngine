@@ -89,7 +89,28 @@ builder.Services.AddCors(options =>
             var allowedOrigins = builder.Configuration["AllowedOrigins"]
                 ?? throw new InvalidOperationException("AllowedOrigins is not configured.");
 
-            policy.WithOrigins(allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            policy.SetIsOriginAllowed(origin =>
+                  {
+                      if (string.IsNullOrEmpty(origin)) return false;
+
+                      var origins = allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(o => o.Trim());
+                      if (origins.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+                      {
+                          return true;
+                      }
+
+                      if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                      {
+                          var host = uri.Host;
+                          if (host.StartsWith("online-belote-", StringComparison.OrdinalIgnoreCase) &&
+                              host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase))
+                          {
+                              return true;
+                          }
+                      }
+
+                      return false;
+                  })
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials()
