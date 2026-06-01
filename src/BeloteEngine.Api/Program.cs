@@ -86,8 +86,7 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            var allowedOrigins = builder.Configuration["AllowedOrigins"]
-                ?? throw new InvalidOperationException("AllowedOrigins is not configured.");
+            var allowedOrigins = builder.Configuration["AllowedOrigins"] ?? string.Empty;
 
             policy.SetIsOriginAllowed(origin =>
                   {

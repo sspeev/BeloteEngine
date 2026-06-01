@@ -120,6 +120,8 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/beloteengine/belote-engine:${{ github.sha }}
+          env_vars: |
+            AllowedOrigins=https://online-belote-sspeevs-projects.vercel.app
 
       - name: Show deployed URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
