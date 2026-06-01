@@ -67,7 +67,8 @@ public class BeloteHub(
             else
             {
                 // Lobby was deleted because it's empty
-                await Clients.All.LobbyDeleted(player.LobbyId ?? 0);
+                if (player.LobbyId is int deletedLobbyId)
+                    await Clients.All.LobbyDeleted(deletedLobbyId);
             }
             logger.LogInformation("Player {PlayerName} removed from lobby {LobbyId} on disconnect", player.Name, player.LobbyId);
         }

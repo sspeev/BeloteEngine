@@ -14,7 +14,7 @@ public interface IBeloteClient
 
     Task LobbyDeleted(int lobbyId);
 
-    Task GameStarted(object lobby);
+    Task GameStarted(Lobby lobby);
 
     Task CardsDealt(Lobby lobby, string dealerName, string bidderName);
 

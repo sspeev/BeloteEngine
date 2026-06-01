@@ -64,7 +64,9 @@ public sealed class SessionService(
         var protectedPayload = protector.Protect(JsonSerializer.Serialize(payload));
 
         response.Cookies.Append(CookieName, protectedPayload, BuildCookieOptions(request, expiresAt));
-        System.Diagnostics.Debug.WriteLine($"✅ Session cookie set. PlayerName={normalizedPlayerName}, SessionId={sessionId}");
+
+        if (_environment.IsDevelopment())
+            System.Diagnostics.Debug.WriteLine("Initial session cookie issued.");
     }
 
     public void ClearSessionCookie(HttpRequest request, HttpResponse response)
@@ -146,7 +148,9 @@ public sealed class SessionService(
                 return false;
             }
 
-            System.Diagnostics.Debug.WriteLine($"✅ Payload valid. SessionId={payload.SessionId}, PlayerName={payload.PlayerName}, ExpiresAt={payload.ExpiresAt}");
+            if (_environment.IsDevelopment())
+                System.Diagnostics.Debug.WriteLine("Payload valid.");
+
             return true;
         }
         catch (CryptographicException ex)

@@ -2,7 +2,7 @@
 
 namespace BeloteEngine.Api.Models
 {
-    public class LobbyDataResponce
+    public class LobbyDataResponse
     {
         public Lobby Lobby { get; set; } = null!;
 
