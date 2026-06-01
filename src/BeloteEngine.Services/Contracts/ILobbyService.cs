@@ -1,4 +1,4 @@
-﻿using BeloteEngine.Data.Entities.Models;
+using BeloteEngine.Data.Entities.Models;
 using BeloteEngine.Services.Models;
 
 namespace BeloteEngine.Services.Contracts;
@@ -13,4 +13,5 @@ public interface ILobbyService
     List<LobbyInfoModel> GetAvailableLobbies();
     bool IsFull(int lobbyId);
     void ResetLobby(int lobbyId);
+    (Player? player, Lobby? lobby) RemovePlayerByConnectionId(string connectionId);
 }

@@ -17,28 +17,35 @@ namespace BeloteEngine.Api.Services;
 /// <param name="dataProtectionProvider">The data protection provider used to create a data protector for encrypting and decrypting session cookie payloads.
 /// Cannot be null.</param>
 public sealed class SessionService(
-    IDataProtectionProvider dataProtectionProvider) : ISessionService
+    IDataProtectionProvider dataProtectionProvider,
+    IHostEnvironment environment) : ISessionService
 {
     public const string CookieName = "belote_session";
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
     private readonly IDataProtector protector =
         dataProtectionProvider.CreateProtector("BeloteEngine.SessionCookie.v1");
+    private readonly IHostEnvironment _environment = environment;
 
     public void IssueSessionCookie(HttpRequest request, HttpResponse response)
     {
         var expiresAt = DateTimeOffset.UtcNow.Add(SessionLifetime);
-        var sessionId = TryReadSessionId(request, out var existingSessionId)
-            ? existingSessionId
+        var hasExisting = TryReadPayload(request, out var existingPayload);
+
+        var sessionId = hasExisting && !string.IsNullOrWhiteSpace(existingPayload!.SessionId)
+            ? existingPayload.SessionId
             : Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+        var playerName = hasExisting ? existingPayload!.PlayerName : null;
 
         var payload = new SessionCookiePayload(
             sessionId,
-            null,
+            playerName,
             expiresAt);
 
         var protectedPayload = protector.Protect(JsonSerializer.Serialize(payload));
 
         response.Cookies.Append(CookieName, protectedPayload, BuildCookieOptions(request, expiresAt));
+        System.Diagnostics.Debug.WriteLine($"✅ Initial session cookie issued. SessionId={sessionId}, PlayerName={playerName}");
     }
 
     public void SetSessionCookie(HttpRequest request, HttpResponse response, string playerName)
@@ -57,6 +64,9 @@ public sealed class SessionService(
         var protectedPayload = protector.Protect(JsonSerializer.Serialize(payload));
 
         response.Cookies.Append(CookieName, protectedPayload, BuildCookieOptions(request, expiresAt));
+
+        if (_environment.IsDevelopment())
+            System.Diagnostics.Debug.WriteLine("Initial session cookie issued.");
     }
 
     public void ClearSessionCookie(HttpRequest request, HttpResponse response)
@@ -68,11 +78,26 @@ public sealed class SessionService(
     {
         session = null;
 
-        if (!TryReadPayload(request, out var payload) ||
-            string.IsNullOrWhiteSpace(payload!.PlayerName))
+        if (!request.Cookies.TryGetValue(CookieName, out var cookieValue))
+        {
+            System.Diagnostics.Debug.WriteLine("❌ Session cookie not found");
             return false;
+        }
+
+        if (!TryReadPayload(request, out var payload))
+        {
+            System.Diagnostics.Debug.WriteLine("❌ Failed to read/decrypt session payload");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(payload!.PlayerName))
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ PlayerName is null/empty. SessionId={payload.SessionId}");
+            return false;
+        }
 
         session = new SessionIdentity(payload.SessionId, payload.PlayerName!, payload.ExpiresAt);
+        System.Diagnostics.Debug.WriteLine($"✅ Session validated. PlayerName={payload.PlayerName}");
         return true;
     }
 
@@ -92,27 +117,55 @@ public sealed class SessionService(
 
         if (!request.Cookies.TryGetValue(CookieName, out var protectedPayload) ||
             string.IsNullOrWhiteSpace(protectedPayload))
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Cookie '{CookieName}' not found or empty");
             return false;
+        }
 
         try
         {
+            System.Diagnostics.Debug.WriteLine("🔓 Attempting to unprotect payload...");
             var json = protector.Unprotect(protectedPayload);
+            System.Diagnostics.Debug.WriteLine("✅ Payload unprotected successfully");
+
             payload = JsonSerializer.Deserialize<SessionCookiePayload>(json);
 
-            return payload is not null &&
-                   !string.IsNullOrWhiteSpace(payload.SessionId) &&
-                   payload.ExpiresAt > DateTimeOffset.UtcNow;
+            if (payload is null)
+            {
+                System.Diagnostics.Debug.WriteLine("❌ Deserialized payload is null");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.SessionId))
+            {
+                System.Diagnostics.Debug.WriteLine("❌ SessionId is null/empty after deserialization");
+                return false;
+            }
+
+            if (payload.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Session expired. ExpiresAt={payload.ExpiresAt}");
+                return false;
+            }
+
+            if (_environment.IsDevelopment())
+                System.Diagnostics.Debug.WriteLine("Payload valid.");
+
+            return true;
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"❌ Cryptographic error: {ex.Message}");
             return false;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"❌ JSON deserialization error: {ex.Message}");
             return false;
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"❌ Format error: {ex.Message}");
             return false;
         }
     }
@@ -122,29 +175,34 @@ public sealed class SessionService(
         string? PlayerName,
         DateTimeOffset ExpiresAt);
 
-    private static CookieOptions BuildCookieOptions(HttpRequest request, DateTimeOffset expiresAt)
+    private CookieOptions BuildCookieOptions(HttpRequest request, DateTimeOffset expiresAt)
     {
         var isSecureRequest = request.IsHttps;
+
+        // In development, use Lax to avoid browser blocking with localhost on different ports
+        var sameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : (isSecureRequest ? SameSiteMode.None : SameSiteMode.Lax);
 
         return new CookieOptions
         {
             HttpOnly = true,
             Secure = isSecureRequest,
-            SameSite = isSecureRequest ? SameSiteMode.None : SameSiteMode.Lax,
+            SameSite = sameSite,
             Expires = expiresAt,
             Path = "/",
             IsEssential = true
         };
     }
 
-    private static CookieOptions BuildDeleteCookieOptions(HttpRequest request)
+    private CookieOptions BuildDeleteCookieOptions(HttpRequest request)
     {
         var isSecureRequest = request.IsHttps;
+        var sameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : (isSecureRequest ? SameSiteMode.None : SameSiteMode.Lax);
+
         return new CookieOptions
         {
             Path = "/",
             Secure = isSecureRequest,
-            SameSite = isSecureRequest ? SameSiteMode.None : SameSiteMode.Lax
+            SameSite = sameSite
         };
     }
 }

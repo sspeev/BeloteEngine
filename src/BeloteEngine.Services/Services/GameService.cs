@@ -33,9 +33,9 @@ public class GameService(
 
         lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
 
-        // Initialize both queues
+        // Initialize both lists
         lobby.Game.RoundQueue = InitSortedPlayers(lobby.Game.Teams);
-        lobby.Game.SortedPlayers = new Queue<Player>(lobby.Game.RoundQueue); // Copy for gameplay
+        lobby.Game.SortedPlayers = new List<Player>(lobby.Game.RoundQueue); // Copy for gameplay
 
         lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
         lobby.GamePhase = "splitting";
@@ -58,7 +58,7 @@ public class GameService(
         // Previously this was a bare CurrentPlayer = Starter which left RoundQueue pointing at
         // whoever happened to be at its front — causing wrong player / wrong direction on card 1.
         SetCurrentPlayerTo(game, game.Starter);
-
+         
         // Keep game.CurrentTrick in sync so clients can read lobby.game.currentTrick
         game.CurrentTrick = game.CurrentRound.CurrentTrick;
 
@@ -136,34 +136,35 @@ public class GameService(
         return new PlayCardResult();
     }
 
-    public Player PlayerToSplitCards(Queue<Player> players)
+    public Player PlayerToSplitCards(List<Player> players)
     {
         var splitter = RotatePlayerQueue(players);
         logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
         return splitter;
     }
-    public Player PlayerToDealCards(Queue<Player> players)
+    public Player PlayerToDealCards(List<Player> players)
     {
         var dealer = RotatePlayerQueue(players);
         logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
         return dealer;
     }
-    public Player PlayerToStartAnnounceAndPlay(Queue<Player> players)
+    public Player PlayerToStartAnnounceAndPlay(List<Player> players)
     {
         var announcer = RotatePlayerQueue(players);
         logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
         return announcer;
     }
-    public Player GetNextPlayer(Queue<Player> players)
+    public Player GetNextPlayer(List<Player> players)
     {
         var nextPlayer = RotatePlayerQueue(players);
         logger.LogInformation("Next player to make an action: {PlayerName}", nextPlayer.Name);
         return nextPlayer;
     }
-    private static Player RotatePlayerQueue(Queue<Player> players)
+    private static Player RotatePlayerQueue(List<Player> players)
     {
-        var player = players.Dequeue();
-        players.Enqueue(player);
+        var player = players[0];
+        players.RemoveAt(0);
+        players.Add(player);
         return player;
     }
 
@@ -173,13 +174,12 @@ public class GameService(
     private static void SetCurrentPlayerTo(Game game, Player player)
     {
         // Rotate until the target player is at the front
-        while (game.SortedPlayers.Peek().Name != player.Name)
+        while (game.SortedPlayers[0].Name != player.Name)
             RotatePlayerQueue(game.SortedPlayers);
 
         // Consume the winner from the front (same as RotatePlayerQueue/GetNextPlayer does)
         // so the next GetNextPlayer call correctly returns the second player, not the winner again.
-        var winner = game.SortedPlayers.Dequeue();
-        game.SortedPlayers.Enqueue(winner);
+        var winner = RotatePlayerQueue(game.SortedPlayers);
         game.CurrentPlayer = winner;
     }
 
@@ -204,13 +204,13 @@ public class GameService(
         return true;
     }
 
-    private static Queue<Player> InitSortedPlayers(Team[] teams)
+    private static List<Player> InitSortedPlayers(Team[] teams)
     {
-        Queue<Player> sortedPlayers = new();
-        sortedPlayers.Enqueue(teams[0].Players[0]);
-        sortedPlayers.Enqueue(teams[1].Players[0]);
-        sortedPlayers.Enqueue(teams[0].Players[1]);
-        sortedPlayers.Enqueue(teams[1].Players[1]);
+        List<Player> sortedPlayers = new();
+        sortedPlayers.Add(teams[0].Players[0]);
+        sortedPlayers.Add(teams[1].Players[0]);
+        sortedPlayers.Add(teams[0].Players[1]);
+        sortedPlayers.Add(teams[1].Players[1]);
         return sortedPlayers;
     }
 
@@ -218,11 +218,9 @@ public class GameService(
     {
         Game game = new()
         {
-            Teams = SetPlayers(lobby.ConnectedPlayers)
+            Teams = SetPlayers(lobby.ConnectedPlayers),
+            Deck = new Deck()
         };
-        game.Deck = new Deck();
-
-        // Assign the game to the lobby
         lobby.Game = game;
         lobby.GameStarted = true;
 
@@ -411,10 +409,10 @@ public class GameService(
 
         if (game.RoundQueue == null || game.RoundQueue.Count == 0)
         {
-            game.RoundQueue = new Queue<Player>();
+            game.RoundQueue = new List<Player>();
             foreach (var player in lobby.ConnectedPlayers)
             {
-                game.RoundQueue.Enqueue(player);
+                game.RoundQueue.Add(player);
             }
         }
         else
@@ -425,7 +423,7 @@ public class GameService(
         }
 
         // Rebuild SortedPlayers from RoundQueue for the new round
-        game.SortedPlayers = new Queue<Player>(game.RoundQueue);
+        game.SortedPlayers = new List<Player>(game.RoundQueue);
 
         // Set the current player to the splitter (first in queue)
         game.CurrentPlayer = PlayerToSplitCards(game.SortedPlayers);

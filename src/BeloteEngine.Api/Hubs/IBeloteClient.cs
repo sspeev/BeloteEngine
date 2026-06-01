@@ -1,4 +1,5 @@
-﻿using BeloteEngine.Data.Entities.Models;
+﻿using BeloteEngine.Api.Models;
+using BeloteEngine.Data.Entities.Models;
 
 namespace BeloteEngine.Api.Hubs;
 

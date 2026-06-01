@@ -57,6 +57,22 @@ public class BeloteHub(
         connectionLimiter.RemoveConnection(ipAddress, Context.ConnectionId);
         afkTimer.Unregister(Context.ConnectionId);
 
+        var (player, lobby) = lobbyService.RemovePlayerByConnectionId(Context.ConnectionId);
+        if (player != null)
+        {
+            if (lobby != null)
+            {
+                await Clients.Group($"Lobby_{lobby.Id}").PlayerLeft(lobby);
+            }
+            else
+            {
+                // Lobby was deleted because it's empty
+                if (player.LobbyId is int deletedLobbyId)
+                    await Clients.All.LobbyDeleted(deletedLobbyId);
+            }
+            logger.LogInformation("Player {PlayerName} removed from lobby {LobbyId} on disconnect", player.Name, player.LobbyId);
+        }
+
         if (logSensitiveDetails)
             logger.LogInformation("Player disconnected: {ConnectionId}", Context.ConnectionId);
         else
@@ -67,7 +83,7 @@ public class BeloteHub(
 
     // ── Lobby ─────────────────────────────────────────────────────────────────
 
-    public async Task JoinLobby(JoinModel request)
+    public async Task<Lobby> JoinLobby(JoinModel request)
     {
         if (request is null)
             throw new HubException("Join request is required.");
@@ -85,7 +101,9 @@ public class BeloteHub(
             ?? throw new HubException("Session validation failed.");
 
         if (!sessionCookieService.TryReadSession(httpContext.Request, out var session))
+        {
             throw new HubException("Session validation failed. Please reconnect and try again.");
+        }
 
         if (!string.Equals(session!.PlayerName, request.PlayerName, StringComparison.OrdinalIgnoreCase))
         {
@@ -113,6 +131,8 @@ public class BeloteHub(
 
         var updatedLobby = lobbyService.GetLobby(request.LobbyId);
         await Clients.Group($"Lobby_{request.LobbyId}").PlayerJoined(updatedLobby);
+
+        return updatedLobby;
     }
 
     public async Task LeaveLobby(LeaveRequestModel request)
@@ -131,8 +151,6 @@ public class BeloteHub(
         }
 
         var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
-
-        bool isHost = callingPlayer.Hoster;
         bool success = lobbyService.LeaveLobby(player, request.LobbyId);
 
         if (!success)
@@ -142,16 +160,17 @@ public class BeloteHub(
         logger.LogInformation("Player {PlayerName} left lobby {LobbyId}", request.PlayerName, request.LobbyId);
 
         var updatedLobby = lobbyService.GetLobby(request.LobbyId);
-        bool shouldDelete = isHost && (updatedLobby == null || updatedLobby.ConnectedPlayers.Count == 0);
 
-        if (shouldDelete)
+        if (updatedLobby == null || updatedLobby.ConnectedPlayers.Count == 0)
         {
             await Clients.Group($"Lobby_{request.LobbyId}").LobbyDeleted(request.LobbyId);
+            // Also notify everyone so the lobby list updates immediately
+            await Clients.All.LobbyDeleted(request.LobbyId);
             logger.LogInformation("Lobby {LobbyId} deleted", request.LobbyId);
         }
         else
         {
-            await Clients.Group($"Lobby_{request.LobbyId}").PlayerLeft(updatedLobby!);
+            await Clients.Group($"Lobby_{request.LobbyId}").PlayerLeft(updatedLobby);
         }
     }
 
@@ -161,12 +180,10 @@ public class BeloteHub(
     {
         var lobby = GetLobbyOrThrow(lobbyId);
         GetCallerOrThrow(lobby); // just validate presence
-
         gameService.GameInitializer(lobby);
         gameService.InitialPhase(lobby);
         lobby.Game.Splitter = lobby.Game.CurrentPlayer;
         lobby.UpdateActivity();
-
         logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
         await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
     }

@@ -8,11 +8,11 @@ public interface IGameService
     public void GameInitializer(Lobby lobby);
     public void InitialPhase(Lobby lobby);
     public Game Gameplay(Lobby lobby);
-    public Player PlayerToSplitCards(Queue<Player> players);
-    public Player PlayerToDealCards(Queue<Player> players);
-    public Player PlayerToStartAnnounceAndPlay(Queue<Player> players);
+    public Player PlayerToSplitCards(List<Player> players);
+    public Player PlayerToDealCards(List<Player> players);
+    public Player PlayerToStartAnnounceAndPlay(List<Player> players);
     public Player GetNextBidder(Lobby lobby);
-    public Player GetNextPlayer(Queue<Player> players);
+    public Player GetNextPlayer(List<Player> players);
     public bool IsGameOver(int team1Score, int team2Score);
     void GetPlayerCards(Player player, Deck deck);
     Player MakeBid(string playerName, string bid, Lobby lobby);

@@ -307,4 +307,32 @@ public class LobbyService(
                 TimeSpan.FromMinutes(5));
         }
     }
+    public (Player? player, Lobby? lobby) RemovePlayerByConnectionId(string connectionId)
+    {
+        lock (_lockObject)
+        {
+            foreach (var lobby in _lobbies.Values)
+            {
+                var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.ConnectionId == connectionId);
+                if (player != null)
+                {
+                    lobby.ConnectedPlayers.Remove(player);
+                    lobby.UpdateActivity();
+                    InvalidateLobbyCache(lobby.Id);
+
+                    if (lobby.ConnectedPlayers.Count == 0)
+                    {
+                        if (_lobbies.TryRemove(lobby.Id, out _))
+                        {
+                            OnLobbyRemoved(lobby.Id);
+                            _logger.LogInformation("Removed empty lobby {LobbyId} after connection loss.", lobby.Id);
+                            return (player, null); // Lobby is gone
+                        }
+                    }
+                    return (player, lobby);
+                }
+            }
+        }
+        return (null, null);
+    }
 }

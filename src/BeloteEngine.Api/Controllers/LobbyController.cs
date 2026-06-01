@@ -70,6 +70,7 @@ public sealed class LobbyController(
                 ConnectedPlayers = lobby.ConnectedPlayers.ToArray(),
                 GamePhase = lobby.GamePhase,
                 GameStarted = lobby.GameStarted,
+                Game = lobby.Game,
                 PlayerCount = lobby.ConnectedPlayers.Count
             }
         });
