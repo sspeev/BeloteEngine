@@ -1,4 +1,4 @@
-﻿namespace BeloteEngine.Data.Entities.Enums
+﻿namespace BeloteEngine.Domain.Entities.Enums
 {
     public enum Status
     {

@@ -1,4 +1,4 @@
-namespace BeloteEngine.Data.Entities.Models;
+namespace BeloteEngine.Domain.Entities.Models;
 
 /// <summary>
 /// Represents a single card played by a player during a trick.
