@@ -1,12 +1,11 @@
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using BeloteEngine.Presentation.Extensions;
 using BeloteEngine.Presentation.Hubs;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Text.Json;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
-
 var cloudRunPort = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(cloudRunPort))
 {
@@ -21,7 +20,6 @@ builder.Services.AddMemoryCache(options =>
 });
 
 builder.Services.AddDataProtection();
-
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("fixed", limiterOptions =>
@@ -57,8 +55,9 @@ builder.Services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { 
-        Title = "Belote Engine API", 
+    c.SwaggerDoc("v1", new()
+    {
+        Title = "Belote Engine API",
         Version = "v1",
         Description = "API for managing Belote game lobbies and gameplay"
     });
@@ -169,7 +168,7 @@ try
 {
     logger.LogInformation("Belote Engine API started successfully on {Urls}",
         string.Join(", ", app.Urls));
-    
+
     await app.RunAsync();
 }
 catch (Exception ex)
