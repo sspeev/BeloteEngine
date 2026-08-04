@@ -1,0 +1,31 @@
+﻿using BeloteEngine.Domain.Entities.Models;
+
+namespace BeloteEngine.Presentation.Hubs;
+
+//Server -> Client
+public interface IBeloteClient
+{
+    Task PlayerJoined(Lobby lobby);
+
+    Task PlayerLeft(Lobby lobby);
+
+    Task LobbyUpdated(Lobby lobby);
+
+    Task LobbyDeleted(int lobbyId);
+
+    Task GameStarted(Lobby lobby);
+
+    Task CardsDealt(Lobby lobby, string dealerName, string bidderName);
+
+    Task BidMade(Lobby lobby);
+
+    Task Gameplay(Lobby lobby);
+
+    Task GameRestarted(Lobby lobby);
+
+    Task GameSkipped(Lobby lobby);
+
+    Task CardPlayed(Lobby lobby);
+
+    Task AfkDisconnected();
+}

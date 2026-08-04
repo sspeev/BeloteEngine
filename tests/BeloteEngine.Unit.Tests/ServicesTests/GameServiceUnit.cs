@@ -1,7 +1,7 @@
-using BeloteEngine.Data.Entities.Enums;
-using BeloteEngine.Data.Entities.Models;
-using BeloteEngine.Services.Rules;
-using BeloteEngine.Services.Services;
+using BeloteEngine.Domain.Entities.Enums;
+using BeloteEngine.Domain.Entities.Models;
+using BeloteEngine.Application.Rules;
+using BeloteEngine.Application.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace BeloteEngine.Unit.Tests.Services;

@@ -1,0 +1,22 @@
+﻿using BeloteEngine.Application.DTOs;
+using BeloteEngine.Domain.Entities.Models;
+
+namespace BeloteEngine.Application.Contracts;
+
+public interface IGameService
+{
+    public void GameInitializer(Lobby lobby);
+    public void InitialPhase(Lobby lobby);
+    public Game Gameplay(Lobby lobby);
+    public Player PlayerToSplitCards(List<Player> players);
+    public Player PlayerToDealCards(List<Player> players);
+    public Player PlayerToStartAnnounceAndPlay(List<Player> players);
+    public Player GetNextBidder(Lobby lobby);
+    public Player GetNextPlayer(List<Player> players);
+    public bool IsGameOver(int team1Score, int team2Score);
+    void GetPlayerCards(Player player, Deck deck);
+    Player MakeBid(string playerName, string bid, Lobby lobby);
+    PlayCardResult PlayCard(string playerName, Card card, Lobby lobby);
+    Game GameReset(Lobby lobby);
+    Game Creator();
+}

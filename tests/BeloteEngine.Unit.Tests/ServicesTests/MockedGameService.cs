@@ -1,6 +1,6 @@
-using BeloteEngine.Data.Entities.Models;
-using BeloteEngine.Services.Contracts;
-using BeloteEngine.Services.Models;
+using BeloteEngine.Domain.Entities.Models;
+using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.DTOs;
 
 namespace BeloteEngine.Unit.Tests.Services;
 

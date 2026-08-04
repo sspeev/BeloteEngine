@@ -1,8 +1,8 @@
-using BeloteEngine.Data.Entities.Models;
-using BeloteEngine.Services.Services;
+using BeloteEngine.Domain.Entities.Models;
+using BeloteEngine.Application.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
-using static BeloteEngine.Services.Constants.LobbyConstants;
+using static BeloteEngine.Application.Constants.LobbyConstants;
 
 namespace BeloteEngine.Unit.Tests.Services;
 

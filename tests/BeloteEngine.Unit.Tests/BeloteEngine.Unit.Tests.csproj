@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\BeloteEngine.Services\BeloteEngine.Services.csproj" />
+    <ProjectReference Include="..\..\src\BeloteEngine.Application\BeloteEngine.Application.csproj" />
   </ItemGroup>
 
 </Project>

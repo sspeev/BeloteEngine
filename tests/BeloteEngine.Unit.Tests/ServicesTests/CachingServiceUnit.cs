@@ -1,4 +1,4 @@
-using BeloteEngine.Services.Services;
+using BeloteEngine.Application.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 

@@ -1,4 +1,4 @@
-using BeloteEngine.Services.Security;
+using BeloteEngine.Application.Security;
 
 namespace BeloteEngine.Unit.Tests.Services;
 

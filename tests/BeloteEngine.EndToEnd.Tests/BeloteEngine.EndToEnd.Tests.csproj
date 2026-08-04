@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\BeloteEngine.Api\BeloteEngine.Api.csproj" />
+    <ProjectReference Include="..\..\src\BeloteEngine.Presentation\BeloteEngine.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

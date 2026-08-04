@@ -1,6 +1,6 @@
-using BeloteEngine.Data.Entities.Enums;
-using BeloteEngine.Data.Entities.Models;
-using BeloteEngine.Services.Rules;
+using BeloteEngine.Domain.Entities.Enums;
+using BeloteEngine.Domain.Entities.Models;
+using BeloteEngine.Application.Rules;
 
 namespace BeloteEngine.Unit.Tests.Services;
 
