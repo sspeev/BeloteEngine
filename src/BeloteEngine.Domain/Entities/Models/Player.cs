@@ -1,15 +1,13 @@
 using System.Text.Json.Serialization;
 using BeloteEngine.Domain.Entities.Enums;
-using Microsoft.AspNetCore.Identity;
 
 namespace BeloteEngine.Domain.Entities.Models;
 
-public class Player : IdentityUser
+public class Player
 {
-    public int Id { get; set; }
-    public int? LobbyId { get; set; }
-
+    public required string UserId { get; set; }
     public required string Name { get; init; }
+    public int? LobbyId { get; set; }
     public Status Status { get; set; } = Status.Disconnected;
     [JsonIgnore]
     public string ConnectionId { get; set; } = string.Empty;
