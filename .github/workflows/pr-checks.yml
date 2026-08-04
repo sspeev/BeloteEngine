@@ -17,16 +17,16 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0"
+          dotnet-version: "10.0"
 
       - name: Restore dependencies
-        run: dotnet restore BeloteEngine.sln /p:SpaProxyLaunchEnabled=false
+        run: dotnet restore BeloteEngine.slnx /p:SpaProxyLaunchEnabled=false
 
       - name: Build
-        run: dotnet build BeloteEngine.sln --configuration Release --no-restore /p:SpaProxyLaunchEnabled=false
+        run: dotnet build BeloteEngine.slnx --configuration Release --no-restore /p:SpaProxyLaunchEnabled=false
 
       - name: Run tests (Unit, Integration, E2E)
-        run: dotnet test BeloteEngine.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
+        run: dotnet test BeloteEngine.slnx --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
 
       - name: Upload test results
         if: always()

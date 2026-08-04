@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/" />
+  <Project Path="src/BeloteEngine.Api/BeloteEngine.Api.csproj">
+    <BuildDependency Project="src/BeloteEngine.Services/BeloteEngine.Services.csproj" />
+  </Project>
+  <Project Path="src/BeloteEngine.Data/BeloteEngine.Data.csproj" />
+  <Project Path="src/BeloteEngine.Services/BeloteEngine.Services.csproj">
+    <BuildDependency Project="src/BeloteEngine.Data/BeloteEngine.Data.csproj" />
+  </Project>
+  <Project Path="tests/BeloteEngine.EndToEnd.Tests/BeloteEngine.EndToEnd.Tests.csproj" />
+  <Project Path="tests/BeloteEngine.Integration.Tests/BeloteEngine.Integration.Tests.csproj" />
+  <Project Path="tests/BeloteEngine.Unit.Tests/BeloteEngine.Unit.Tests.csproj" />
+</Solution>
