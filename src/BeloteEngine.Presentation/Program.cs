@@ -148,6 +148,7 @@ if (!isRunningInContainer)
 app.UseCors("AllowFrontend");
 app.UseRouting();
 app.UseAuthorization();
+app.UseAuthentication();
 app.MapHealthChecks("/health");
 app.UseRateLimiter();
 

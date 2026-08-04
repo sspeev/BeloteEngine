@@ -1,10 +1,9 @@
-dotnet run --project src/BeloteEngine.Api/BeloteEngine.Api.csproj 
+dotnet run --project src/BeloteEngine.Presentation/BeloteEngine.Presentation.csproj 
 --launch-profile https
 
-docker build -t beloteengine -f src/BeloteEngine.Api/Dockerfile src
+docker build -t beloteengine -f src/BeloteEngine.Presentation/Dockerfile src
 docker run -d -p 8080:8080 --name belote-api beloteengine
 
-.net8->.net10
 Delay after last card
 kontra indicator
 hand sort
