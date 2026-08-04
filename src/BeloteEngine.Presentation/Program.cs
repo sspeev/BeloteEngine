@@ -97,6 +97,8 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddIdentityServices(builder.Configuration);
 
 builder.Services.AddLogging(logging =>
 {
@@ -147,8 +149,8 @@ if (!isRunningInContainer)
 }
 app.UseCors("AllowFrontend");
 app.UseRouting();
-app.UseAuthorization();
 app.UseAuthentication();
+app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.UseRateLimiter();
 

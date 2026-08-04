@@ -1,10 +1,12 @@
-using BeloteEngine.Domain.Entities.Enums;
 using System.Text.Json.Serialization;
+using BeloteEngine.Domain.Entities.Enums;
+using Microsoft.AspNetCore.Identity;
 
 namespace BeloteEngine.Domain.Entities.Models;
 
-public class Player
+public class Player : IdentityUser
 {
+    public int Id { get; set; }
     public int? LobbyId { get; set; }
 
     public required string Name { get; init; }
