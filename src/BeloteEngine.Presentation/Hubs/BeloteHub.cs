@@ -116,6 +116,7 @@ public class BeloteHub(
 
         Player player = new()
         {
+            UserId = "", //ATTENTION!
             Name = request.PlayerName,
             LobbyId = request.LobbyId,
             ConnectionId = Context.ConnectionId,

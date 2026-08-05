@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 namespace BeloteEngine.Infrastructure.Data;
 
 public class BeloteEngineDbContext(DbContextOptions<BeloteEngineDbContext> options)
-    : IdentityDbContext<Player>(options)
+    : IdentityDbContext<ApplicationUser>(options)
 {
-    public DbSet<Player> Players { get; set; }
 }

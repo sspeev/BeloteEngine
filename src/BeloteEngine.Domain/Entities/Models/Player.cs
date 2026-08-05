@@ -5,7 +5,7 @@ namespace BeloteEngine.Domain.Entities.Models;
 
 public class Player
 {
-    public required string UserId { get; set; }
+    public string UserId { get; set; }
     public required string Name { get; init; }
     public int? LobbyId { get; set; }
     public Status Status { get; set; } = Status.Disconnected;
