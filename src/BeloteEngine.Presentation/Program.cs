@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using BeloteEngine.Infrastructure.Data;
 using BeloteEngine.Presentation.Extensions;
 using BeloteEngine.Presentation.Hubs;
 using Microsoft.AspNetCore.Http.Connections;
@@ -154,6 +155,7 @@ app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.UseRateLimiter();
 
+app.MapIdentityApi<ApplicationUser>();
 // Global error handling endpoint
 app.Map("/error", (HttpContext context) =>
 {

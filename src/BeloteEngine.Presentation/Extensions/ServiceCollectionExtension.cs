@@ -35,7 +35,7 @@ public static class ServiceCollectionExtension
 
     public static IServiceCollection AddIdentityServices(this IServiceCollection service, IConfiguration configuration)
     {
-        service.AddIdentityCore<ApplicationUser>(options =>
+        service.AddIdentityApiEndpoints<ApplicationUser>(options =>
         {
             options.Password.RequireDigit = false;
             options.Password.RequireLowercase = false;
