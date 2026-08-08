@@ -19,7 +19,26 @@ public class JwtProvider(IConfiguration configuration) : IJwtProvider
             new(ClaimTypes.Name, username)
         };
         var secretKey = _configuration["Jwt:Secret"]!;
-        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        
+        var signingKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(secretKey));
+
+        var credentials = new SigningCredentials(signingKey,
+            SecurityAlgorithms.HmacSha256);
+
+        var tokenDescriptor = new SecurityTokenDescriptor()
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddHours(2),
+            SigningCredentials = credentials,
+            Issuer = _configuration["Jwt:Issuer"],
+            Audience = _configuration["Jwt:Audience"]
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+
+        var accessToken = tokenHandler.WriteToken(securityToken);
+
+        return accessToken;
     }
 }
