@@ -16,7 +16,7 @@ public class JwtProvider(IConfiguration configuration) : IJwtProvider
         var claims = new List<Claim>()
         {
             new(JwtRegisteredClaimNames.Sub, userId),
-            new(ClaimTypes.Name, username)
+            new(JwtRegisteredClaimNames.Name, username)
         };
         var secretKey = _configuration["Jwt:Secret"]!;
         var signingKey = new SymmetricSecurityKey(

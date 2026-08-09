@@ -78,7 +78,6 @@ app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.UseRateLimiter();
 
-app.MapIdentityApi<ApplicationUser>();
 // Global error handling endpoint
 app.Map("/error", (HttpContext context) =>
 {

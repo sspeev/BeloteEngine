@@ -1,3 +1,4 @@
+using System.Text;
 using System.Threading.RateLimiting;
 using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.Rules;
@@ -5,8 +6,10 @@ using BeloteEngine.Application.Services;
 using BeloteEngine.Infrastructure.Data;
 using BeloteEngine.Infrastructure.Session;
 using BeloteEngine.Presentation.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BeloteEngine.Presentation.Extensions;
 
@@ -98,7 +101,15 @@ public static class ServiceCollectionExtension
 
         service.AddAuthentication(options =>
         {
-            
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters.ValidIssuer = configuration["Jwt:Issuer"];
+            options.TokenValidationParameters.ValidAudience = configuration["Jwt:Audience"];
+            options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!));
         });
 
         return service;
@@ -115,6 +126,5 @@ public static class ServiceCollectionExtension
         });
         return service;
     }
-
 
 }
