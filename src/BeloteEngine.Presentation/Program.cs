@@ -1,10 +1,7 @@
-using System.Text.Json;
-using System.Threading.RateLimiting;
 using BeloteEngine.Infrastructure.Data;
 using BeloteEngine.Presentation.Extensions;
 using BeloteEngine.Presentation.Hubs;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 var cloudRunPort = Environment.GetEnvironmentVariable("PORT");
@@ -20,86 +17,12 @@ builder.Services.AddMemoryCache(options =>
     options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
 
-builder.Services.AddDataProtection();
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddFixedWindowLimiter("fixed", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 100;              // Max 100 requests
-        limiterOptions.Window = TimeSpan.FromMinutes(1); // Per 1 minute
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 2;                 // Queue up to 2 requests
-    });
-
-    options.OnRejected = async (context, cancellationToken) =>
-    {
-        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        await context.HttpContext.Response.WriteAsync(
-            "Too many requests. Please try again later.",
-            cancellationToken
-        );
-    };
-});
-
-builder.Services
-    .AddControllers()
-    .ConfigureApiBehaviorOptions(options =>
-    {
-        options.SuppressModelStateInvalidFilter = false;
-    })
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.WriteIndented = true;
-    });
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new()
-    {
-        Title = "Belote Engine API",
-        Version = "v1",
-        Description = "API for managing Belote game lobbies and gameplay"
-    });
-});
-
-builder.Services.AddSignalR(options =>
-{
-    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
-    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
-    options.KeepAliveInterval = TimeSpan.FromSeconds(10);
-    options.MaximumReceiveMessageSize = 102400; // 100 KB
-});
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        if (builder.Environment.IsDevelopment())
-        {
-            policy.SetIsOriginAllowed(_ => true)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials()
-                  .WithExposedHeaders("*");
-        }
-        else
-        {
-            var allowedOrigins = builder.Configuration["AllowedOrigins"]
-                ?? throw new InvalidOperationException("AllowedOrigins is not configured.");
-
-            policy.WithOrigins(allowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials()
-                  .WithExposedHeaders("*");
-        }
-    });
-});
+builder.Services.AddSecurityServices(builder.Environment, builder.Configuration);
+builder.AddPresentation();
+builder.Services.AddSignalRConfiguration(builder.Environment);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddIdentityServices(builder.Configuration);
+builder.Services.AddIdentityServices();
 
 builder.Services.AddLogging(logging =>
 {
@@ -116,8 +39,8 @@ builder.Services.AddLogging(logging =>
     }
 });
 builder.Services.AddHealthChecks();
-
 var app = builder.Build();
+
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Starting Belote Engine API v1.0...");
