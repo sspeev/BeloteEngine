@@ -371,3 +371,6 @@ FodyWeavers.xsd
 # JetBrains IDEs (Rider, IntelliJ)
 .idea/
 scripts.txt
+
+# Application Settings (contains secrets)
+appsettings.Development.json
