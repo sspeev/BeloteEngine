@@ -1,5 +1,6 @@
 using BeloteEngine.Application.Contracts;
 using BeloteEngine.Presentation.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Net.Mime;
@@ -8,6 +9,7 @@ namespace BeloteEngine.Presentation.Controllers;
 
 [EnableRateLimiting("fixed")]
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 [Produces(MediaTypeNames.Application.Json)]
 [ProducesResponseType(StatusCodes.Status400BadRequest)]

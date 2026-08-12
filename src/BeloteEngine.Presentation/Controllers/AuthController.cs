@@ -2,17 +2,19 @@ using BeloteEngine.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using BeloteEngine.Application.Contracts;
 
 namespace BeloteEngine.Presentation.Controllers;
-
 [ApiController]
 [Authorize]
-[Route("api/auth")]
+[Route("api/[controller]")]
 public class AuthController(
-    UserManager<ApplicationUser> userManager
+    UserManager<ApplicationUser> userManager,
+    IJwtProvider jwtProvider
     ) : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly IJwtProvider _jwtProvider = jwtProvider;
 
     [HttpPost("register")]
     [AllowAnonymous]
@@ -36,8 +38,19 @@ public class AuthController(
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public IActionResult Login(string userName, string password)
+    public async Task<IActionResult> Login(string userName, string password)
     {
-        return Ok();
+        var user = await _userManager.FindByNameAsync(userName);
+        if (user == null || !await _userManager.CheckPasswordAsync(user, password))
+        {
+            return Unauthorized("Invalid credentials.");
+        }
+
+        var token = _jwtProvider.GenerateToken(user.Id, user.UserName!);
+
+        return Ok(new
+        {
+            Token = token
+        });
     }
 }

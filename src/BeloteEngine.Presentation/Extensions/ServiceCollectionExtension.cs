@@ -34,12 +34,13 @@ public static class ServiceCollectionExtension
     {
         service.AddDbContext<BeloteEngineDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+        service.AddSingleton<IJwtProvider, BeloteEngine.Infrastructure.Auth.JwtProvider>();
         return service;
     }
 
     public static IServiceCollection AddIdentityServices(this IServiceCollection service)
     {
-        service.AddIdentityApiEndpoints<ApplicationUser>(options =>
+        service.AddIdentityCore<ApplicationUser>(options =>
         {
             options.Password.RequireDigit = false;
             options.Password.RequireLowercase = false;
