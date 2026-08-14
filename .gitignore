@@ -374,3 +374,5 @@ scripts.txt
 
 # Application Settings (contains secrets)
 appsettings.Development.json
+# VS Code C# Dev Tools - Auto-generated runners
+.vscodecsdt/Runners/

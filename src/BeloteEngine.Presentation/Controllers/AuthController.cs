@@ -18,15 +18,15 @@ public class AuthController(
 
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<IActionResult> Register(string userName, string password)
+    public async Task<IActionResult> Register([FromBody] AuthRequest request)
     {
         var user = new ApplicationUser
         {
-            UserName = userName,
-            Email = userName
+            UserName = request.UserName,
+            Email = request.UserName
         };
 
-        var result = await _userManager.CreateAsync(user, password);
+        var result = await _userManager.CreateAsync(user, request.Password);
 
         if (result.Succeeded)
         {
@@ -38,10 +38,10 @@ public class AuthController(
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<IActionResult> Login(string userName, string password)
+    public async Task<IActionResult> Login([FromBody] AuthRequest request)
     {
-        var user = await _userManager.FindByNameAsync(userName);
-        if (user == null || !await _userManager.CheckPasswordAsync(user, password))
+        var user = await _userManager.FindByNameAsync(request.UserName);
+        if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
         {
             return Unauthorized("Invalid credentials.");
         }
@@ -54,3 +54,5 @@ public class AuthController(
         });
     }
 }
+
+public record AuthRequest(string UserName, string Password);
