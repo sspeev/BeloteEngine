@@ -1,8 +1,8 @@
+using BeloteEngine.Application.Contracts;
 using BeloteEngine.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using BeloteEngine.Application.Contracts;
 
 namespace BeloteEngine.Presentation.Controllers;
 [ApiController]
@@ -18,12 +18,12 @@ public class AuthController(
 
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] AuthRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         var user = new ApplicationUser
         {
-            UserName = request.UserName,
-            Email = request.UserName
+            UserName = request.Username,
+            Email = request.Email
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -38,9 +38,9 @@ public class AuthController(
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<IActionResult> Login([FromBody] AuthRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await _userManager.FindByNameAsync(request.UserName);
+        var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
         {
             return Unauthorized("Invalid credentials.");
@@ -55,4 +55,6 @@ public class AuthController(
     }
 }
 
-public record AuthRequest(string UserName, string Password);
+public record LoginRequest(string Email, string Password);
+
+public record RegisterRequest(string Username, string Email, string Password);
