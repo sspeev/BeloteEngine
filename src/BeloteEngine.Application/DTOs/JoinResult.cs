@@ -1,4 +1,6 @@
-﻿namespace BeloteEngine.Domain.Entities.Models;
+﻿using BeloteEngine.Domain.Entities.Models;
+
+namespace BeloteEngine.Application.DTOs;
 
 public class JoinResult
 {
