@@ -4,11 +4,15 @@ namespace BeloteEngine.Domain.Entities.Models;
 
 public class Deck
 {
-    public Stack<Card> Cards { get; set; }
-
     public Deck()
     {
-        var suits = new List<Suit> { Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades };
+        var suits = new List<Suit>
+        {
+            Suit.Clubs,
+            Suit.Diamonds,
+            Suit.Hearts,
+            Suit.Spades
+        };
         var cards = new List<(string rank, int value, int power)>
         {
             ("7", 0, 1),
@@ -22,9 +26,11 @@ public class Deck
         };
 
         var allCards = suits.SelectMany(suit =>
-            cards.Select(card => new Card(suit, card.rank, card.value, card.power))
+            cards.Select(card =>
+            new Card(suit, card.rank, card.value, card.power))
         );
-
         Cards = new Stack<Card>(allCards);
     }
+
+    public Stack<Card> Cards { get; set; }
 }

@@ -1,14 +1,12 @@
 ﻿using BeloteEngine.Domain.Entities.Enums;
-using BeloteEngine.Domain.Entities.Models;
 
 namespace BeloteEngine.Domain.Entities.Models;
 
 public class Game
 {
     public Team[] Teams { get; init; } = new Team[2];
-
-    public List<Player> SortedPlayers { get; set; } = new();
-    public List<Player> RoundQueue { get; set; } = new(); // Tracks round rotation
+    public List<Player> SortedPlayers { get; set; } = [];
+    public List<Player> RoundQueue { get; set; } = []; // Tracks round rotation
     public Deck Deck { get; set; } = new();
 
     public void SetPointsOnCards()
@@ -154,21 +152,19 @@ public class Game
     public Round? CurrentRound { get; set; }
     public Trick? CurrentTrick { get; set; }
 
-    public Player Splitter { get; set; } = null!;
+    //public Player Splitter { get; set; } = null!;
 
-    public Player Dealer { get; set; } = null!;
+    //public Player Dealer { get; set; } = null!;
 
-    public Player Announcer { get; set; } = null!;
+    //public Player Announcer { get; set; } = null!;
 
-    public Player Starter { get; set; } = null!;
+    //public Player Starter { get; set; } = null!;
 
     public Player? ContractPlayer { get; set; }
 
-    public bool IsDoubled { get; set; }
+    //public bool IsDoubled { get; set; }
         
-    public bool IsReDoubled { get; set; }
-
-
+    //public bool IsReDoubled { get; set; }
 
     public int PassCounter { get; set; }
 

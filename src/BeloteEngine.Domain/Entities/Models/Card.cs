@@ -10,4 +10,6 @@ public class Card(Suit suit, string rank, int value, int power)
     public int Value { get; set; } = value;
     
     public int Power { get; set; } = power;
+
+    public int? Skin { get; set; }
 }

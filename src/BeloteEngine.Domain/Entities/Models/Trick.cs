@@ -9,7 +9,7 @@ public class Trick
 {
     public List<PlayedCard> PlayedCards { get; set; } = [];
 
-    public Player? Winner { get; set; }
+    public Player Winner { get; set; }
 
     public Suit LeadSuit => PlayedCards.Count > 0 ? PlayedCards[0].Card.Suit : default;
 

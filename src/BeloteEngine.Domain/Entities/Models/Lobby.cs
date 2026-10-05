@@ -8,7 +8,6 @@ public class Lobby
     public bool GameStarted { get; set; }
     public Game Game { get; set; } = null!;
     public string GamePhase { get; set; } = "waiting";
-
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastActivity { get; set; } = DateTime.UtcNow;
 
