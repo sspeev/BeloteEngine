@@ -1,5 +1,4 @@
-
-namespace BeloteEngine.Application.Contracts;
+namespace BeloteEngine.Application.Contracts.Auth;
 
 public interface IJwtProvider
 {

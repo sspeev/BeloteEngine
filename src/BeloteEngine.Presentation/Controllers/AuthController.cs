@@ -1,8 +1,10 @@
 using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.User.Commands.Create;
 using BeloteEngine.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MediatR;
 
 namespace BeloteEngine.Presentation.Controllers;
 [ApiController]
@@ -10,7 +12,8 @@ namespace BeloteEngine.Presentation.Controllers;
 [Route("api/[controller]")]
 public class AuthController(
     UserManager<ApplicationUser> userManager,
-    IJwtProvider jwtProvider
+    IJwtProvider jwtProvider,
+    ISender sender
     ) : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
@@ -18,15 +21,16 @@ public class AuthController(
 
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterRequest request,
+        CancellationToken cancellationToken)
     {
-        var user = new ApplicationUser
-        {
-            UserName = request.Username,
-            Email = request.Email
-        };
-
-        var result = await _userManager.CreateAsync(user, request.Password);
+        var result = await sender.Send(
+            new CreateUserCommand(
+                request.Username,
+                request.Email,
+                request.Password),
+            cancellationToken);
 
         if (result.Succeeded)
         {

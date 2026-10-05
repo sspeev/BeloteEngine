@@ -4,6 +4,7 @@ using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.Rules;
 using BeloteEngine.Application.Services;
 using BeloteEngine.Infrastructure.Data;
+using BeloteEngine.Infrastructure.Identity;
 using BeloteEngine.Infrastructure.Session;
 using BeloteEngine.Presentation.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtension
         service.AddDbContext<BeloteEngineDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         service.AddSingleton<IJwtProvider, BeloteEngine.Infrastructure.Auth.JwtProvider>();
+        service.AddScoped<IUserIdentityService, IdentityUserService>();
         return service;
     }
 

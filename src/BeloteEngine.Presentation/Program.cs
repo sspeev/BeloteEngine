@@ -1,3 +1,4 @@
+using BeloteEngine.Application.User.Commands.Create;
 using BeloteEngine.Presentation.Extensions;
 using BeloteEngine.Presentation.Hubs;
 using Microsoft.AspNetCore.Http.Connections;
@@ -15,6 +16,10 @@ builder.Services.AddMemoryCache(options =>
     options.CompactionPercentage = 0.25;
     options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
+
+var applicationAssembly = typeof(CreateUserCommand).Assembly;
+builder.Services.AddMediatR(config =>
+    config.RegisterServicesFromAssembly(applicationAssembly));
 
 builder.Services.AddSecurityServices(builder.Environment, builder.Configuration);
 builder.AddPresentation();
