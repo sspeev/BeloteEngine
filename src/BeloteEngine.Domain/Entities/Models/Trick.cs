@@ -1,4 +1,5 @@
 ﻿using BeloteEngine.Domain.Entities.Enums;
+using BeloteEngine.Domain.Entities.Records;
 
 namespace BeloteEngine.Domain.Entities.Models;
 

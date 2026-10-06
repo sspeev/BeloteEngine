@@ -4,11 +4,13 @@ namespace BeloteEngine.Domain.Entities.Models;
 
 public class Game
 {
+    public int Id { get; set; }
+    public int JoinCode { get; set; }
+    public int CreatorId { get; set; }
     public Team[] Teams { get; init; } = new Team[2];
     public List<Player> SortedPlayers { get; set; } = [];
     public List<Player> RoundQueue { get; set; } = []; // Tracks round rotation
     public Deck Deck { get; set; } = new();
-
     public void SetPointsOnCards()
     {
         var allHandCards = Teams
@@ -145,32 +147,11 @@ public class Game
             }
         }
     }
-
     public Announces CurrentAnnounce { get; set; } = Announces.None;
-
     public Player CurrentPlayer { get; set; } = null!;
-    public Round? CurrentRound { get; set; }
+    public Round CurrentRound { get; set; } = null!;
     public Trick? CurrentTrick { get; set; }
-
-    //public Player Splitter { get; set; } = null!;
-
-    //public Player Dealer { get; set; } = null!;
-
-    //public Player Announcer { get; set; } = null!;
-
-    //public Player Starter { get; set; } = null!;
-
     public Player? ContractPlayer { get; set; }
-
-    //public bool IsDoubled { get; set; }
-        
-    //public bool IsReDoubled { get; set; }
-
     public int PassCounter { get; set; }
-
-    /// <summary>
-    /// Raw trick points accumulated from hanging rounds (висяща игра).
-    /// Added to the winning pool in the next completed or set round.
-    /// </summary>
     public int PendingPoints { get; set; }
 }

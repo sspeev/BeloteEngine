@@ -1,10 +1,11 @@
 ﻿using BeloteEngine.Domain.Entities.Enums;
 using BeloteEngine.Domain.Entities.Models;
+using BeloteEngine.Domain.Entities.Records;
+using static BeloteEngine.Domain.Entities.Enums.Announces;
 using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Rules;
 using Microsoft.Extensions.Logging;
-using static BeloteEngine.Domain.Entities.Enums.Announces;
 
 namespace BeloteEngine.Application.Services;
 
@@ -32,10 +33,8 @@ public class GameService(
         ValidateLobby(lobby);
 
         lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
-
-        // Initialize both lists
         lobby.Game.RoundQueue = InitSortedPlayers(lobby.Game.Teams);
-        lobby.Game.SortedPlayers = new List<Player>(lobby.Game.RoundQueue); // Copy for gameplay
+        lobby.Game.SortedPlayers = [.. lobby.Game.RoundQueue];
 
         lobby.Game.CurrentPlayer = PlayerToSplitCards(lobby.Game.SortedPlayers);
         lobby.GamePhase = "splitting";
@@ -50,14 +49,14 @@ public class GameService(
         {
             Trump = game.CurrentAnnounce,
             AnnouncingTeam = GetTeamContainingPlayer(game, game.ContractPlayer),
-            IsDoubled = game.IsDoubled,
-            IsReDoubled = game.IsReDoubled
         };
+        var starter = lobby.ConnectedPlayers.First(p => 
+            p.Action == Domain.Entities.Enums.Action.AnnounceAndStart);
 
         // Align RoundQueue to the Starter so GetNextPlayer is correct from the very first card.
         // Previously this was a bare CurrentPlayer = Starter which left RoundQueue pointing at
         // whoever happened to be at its front — causing wrong player / wrong direction on card 1.
-        SetCurrentPlayerTo(game, game.Starter);
+        SetCurrentPlayerTo(game, starter);
          
         // Keep game.CurrentTrick in sync so clients can read lobby.game.currentTrick
         game.CurrentTrick = game.CurrentRound.CurrentTrick;
@@ -139,18 +138,21 @@ public class GameService(
     public Player PlayerToSplitCards(List<Player> players)
     {
         var splitter = RotatePlayerQueue(players);
+        splitter.Action = Domain.Entities.Enums.Action.Split;
         logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
         return splitter;
     }
     public Player PlayerToDealCards(List<Player> players)
     {
         var dealer = RotatePlayerQueue(players);
+        dealer.Action = Domain.Entities.Enums.Action.Deal;
         logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
         return dealer;
     }
     public Player PlayerToStartAnnounceAndPlay(List<Player> players)
     {
         var announcer = RotatePlayerQueue(players);
+        announcer.Action = Domain.Entities.Enums.Action.AnnounceAndStart
         logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
         return announcer;
     }
@@ -327,25 +329,25 @@ public class GameService(
             if (lobby.Game.ContractPlayer == null || IsOnTeam(player, lobby.Game.Teams.First(t => IsOnTeam(lobby.Game.ContractPlayer, t))))
                 throw new InvalidOperationException("You can only double an opponent's bid!");
 
-            if (lobby.Game.IsDoubled)
+            if (lobby.Game.CurrentRound.IsDoubled)
                 throw new InvalidOperationException("This bid is already doubled!");
 
-            lobby.Game.IsDoubled = true;
+            lobby.Game.CurrentRound.IsDoubled = true;
             lobby.Game.PassCounter = 0; // Reset pass counter to allow opponents to respond/redouble
             logger.LogInformation("Player {PlayerName} DOUBLED the contract!", playerName);
         }
         else if (announce == Announces.ReDouble)
         {
-            if (!lobby.Game.IsDoubled)
+            if (!lobby.Game.CurrentRound.IsDoubled)
                 throw new InvalidOperationException("You can only redouble a doubled contract!");
 
-            if (lobby.Game.IsReDoubled)
+            if (lobby.Game.CurrentRound.IsReDoubled)
                 throw new InvalidOperationException("This bid is already redoubled!");
 
             if (lobby.Game.ContractPlayer == null || !IsOnTeam(player, lobby.Game.Teams.First(t => IsOnTeam(lobby.Game.ContractPlayer, t))))
                 throw new InvalidOperationException("You can only redouble your own team's doubled contract!");
 
-            lobby.Game.IsReDoubled = true;
+            lobby.Game.CurrentRound.IsReDoubled = true;
             lobby.Game.PassCounter = 0;
             logger.LogInformation("Player {PlayerName} REDOUBLED the contract!", playerName);
         }
@@ -355,8 +357,8 @@ public class GameService(
             logger.LogInformation("Current announce updated to: {Announce}", announce);
             lobby.Game.CurrentAnnounce = announce;
             lobby.Game.ContractPlayer = player;
-            lobby.Game.IsDoubled = false;
-            lobby.Game.IsReDoubled = false;
+            lobby.Game.CurrentRound.IsDoubled = false;
+            lobby.Game.CurrentRound.IsReDoubled = false;
             lobby.Game.PassCounter = 0;
         }
         else if (lobby.Game.CurrentAnnounce == None)
@@ -365,8 +367,8 @@ public class GameService(
             logger.LogInformation("First announce set to: {Announce}", announce);
             lobby.Game.CurrentAnnounce = announce;
             lobby.Game.ContractPlayer = player;
-            lobby.Game.IsDoubled = false;
-            lobby.Game.IsReDoubled = false;
+            lobby.Game.CurrentRound.IsDoubled = false;
+            lobby.Game.CurrentRound.IsReDoubled = false;
             lobby.Game.PassCounter = 0;
         }
         else

@@ -9,8 +9,8 @@ public class Round
 {
     public Announces Trump { get; set; }
     public Team AnnouncingTeam { get; set; } = null!;
-    public bool IsDoubled { get; set; }
-    public bool IsReDoubled { get; set; }
+    public bool IsDoubled { get; set; } = false;
+    public bool IsReDoubled { get; set; } = false;
     public Trick CurrentTrick { get; set; } = new();
     public List<Trick> CompletedTricks { get; set; } = [];
     public bool IsComplete => CompletedTricks.Count == 8;

@@ -1,9 +1,8 @@
-using System.Collections.Concurrent;
 using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Security;
 using BeloteEngine.Domain.Entities.Models;
-using BeloteEngine.Application.Services;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using static System.StringComparison;
 using static BeloteEngine.Application.Constants.LobbyConstants;
@@ -17,27 +16,27 @@ public class LobbyService(
     , CachingService _cachingService) : ILobbyService
 {
     private readonly ConcurrentDictionary<int, Lobby> _lobbies = new();
-    private readonly ConcurrentDictionary<string, int> _lobbyCountByIp = new();
-    private readonly ConcurrentDictionary<int, string> _lobbyToIp = new();
+    //private readonly ConcurrentDictionary<string, int> _lobbyCountByIp = new();
+    //private readonly ConcurrentDictionary<int, string> _lobbyToIp = new();
     private readonly object _lockObject = new();
     private readonly object _cleanupTimerLock = new();
     private Timer? _cleanupTimer;
 
-    public Lobby CreateLobby(string lobbyName, string ipAddress)
+    public Lobby CreateLobby(string lobbyName, Player creator/*, string ipAddress*/)
     {
         EnsureCleanupTimerStarted();
         lobbyName = InputValidator.SanitizeLobbyName(lobbyName);
         lock (_lockObject)
         {
             if (_lobbies.Count >= MAX_TOTAL_LOBBIES)
-            {
                 throw new InvalidOperationException("Server is full. Please try again later.");
-            }
 
-            if (!_lobbyCountByIp.TryGetValue(ipAddress, out var currentCount))
-            {
-                currentCount = 0;
-            }
+            if (creator.LobbyId != 0)
+                throw new InvalidOperationException("Cannot host lobby while being in another!");
+            // if (!_lobbyCountByIp.TryGetValue(ipAddress, out var currentCount))
+            // {
+            //     currentCount = 0;
+            // }
 
             if (currentCount >= MAX_LOBBIES_PER_IP)
             {
