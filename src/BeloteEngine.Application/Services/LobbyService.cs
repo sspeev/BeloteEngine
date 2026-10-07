@@ -1,8 +1,8 @@
 using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Security;
+using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Domain.Entities.Models;
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using static System.StringComparison;
 using static BeloteEngine.Application.Constants.LobbyConstants;
@@ -12,10 +12,11 @@ namespace BeloteEngine.Application.Services;
 
 public class LobbyService(
     IGameService _gameService
+    , ILobbyJoinValidator _joinValidator
+    , ILobbyStore _lobbyStore
     , ILogger<LobbyService> _logger
     , CachingService _cachingService) : ILobbyService
 {
-    private readonly ConcurrentDictionary<int, Lobby> _lobbies = new();
     private readonly Lock _lockService = new();
     private readonly Lock _cleanupTimerLock = new();
     private Timer? _cleanupTimer;
@@ -26,21 +27,11 @@ public class LobbyService(
         lobbyName = InputValidator.SanitizeLobbyName(lobbyName);
         lock (_lockService)
         {
-            if (_lobbies.Count >= MAX_TOTAL_LOBBIES)
+            if (_lobbyStore.Count >= MAX_TOTAL_LOBBIES)
                 throw new InvalidOperationException("Server is full. Please try again later.");
 
             if (creator.LobbyId != 0)
                 throw new InvalidOperationException("Cannot host lobby while being in another!");
-            // if (!_lobbyCountByIp.TryGetValue(ipAddress, out var currentCount))
-            // {
-            //     currentCount = 0;
-            // }
-
-            // if (currentCount >= MAX_LOBBIES_PER_IP)
-            // {
-            //     throw new InvalidOperationException(
-            //         $"You can only create {MAX_LOBBIES_PER_IP} lobbies at a time.");
-            // }
 
             var lobby = new Lobby
             {
@@ -55,13 +46,10 @@ public class LobbyService(
                 var lobbyId = Random.Shared.Next(1000, 9999);
                 lobby.Id = lobbyId;
 
-                if (!_lobbies.TryAdd(lobbyId, lobby))
+                if (!_lobbyStore.TryAdd(lobbyId, lobby))
                 {
                     continue;
                 }
-
-                // _lobbyToIp[lobbyId] = ipAddress;
-                // _lobbyCountByIp[ipAddress] = currentCount + 1;
                 _cachingService.Remove($"{lobbyId}");
 
                 _logger.LogInformation("Created lobby {LobbyId} '{LobbyName}' from player {}",
@@ -115,15 +103,16 @@ public class LobbyService(
                 return Failure("Invalid lobby ID.");
             }
 
-            if (!_lobbies.TryGetValue(lobbyId, out var lobby))
+            if (!_lobbyStore.TryGet(lobbyId, out var lobby))
             {
                 return Failure($"Lobby {lobbyId} does not exist.");
             }
 
-            var validationError = ValidateJoin(lobby, player);
-            if (validationError is not null)
+            var validation = _joinValidator.Validate(lobby, player);
+
+            if (!validation.IsValid)
             {
-                return Failure(validationError);
+                return Failure(validation.ErrorMessage!);
             }
 
             lobby.ConnectedPlayers.Add(player);
@@ -173,7 +162,7 @@ public class LobbyService(
     public bool LeaveLobby(Player player, int lobbyId)
     {
         EnsureCleanupTimerStarted();
-        if (!_lobbies.TryGetValue(lobbyId, out var lobby))
+        if (!_lobbyStore.TryGet(lobbyId, out var lobby))
         {
             return false;
         }
@@ -194,9 +183,9 @@ public class LobbyService(
 
             if (lobby.ConnectedPlayers.Count == 0)
             {
-                if (_lobbies.TryRemove(lobbyId, out _))
+                if (_lobbyStore.TryRemove(lobbyId, out _))
                 {
-                    OnLobbyRemoved(lobbyId);
+                    //OnLobbyRemoved(lobbyId);
                     _logger.LogInformation("Removed empty lobby {LobbyId} immediately on player leave.", lobbyId);
                 }
             }
@@ -208,14 +197,15 @@ public class LobbyService(
     public Lobby GetLobby(int lobbyId)
     {
         EnsureCleanupTimerStarted();
-        _lobbies.TryGetValue(lobbyId, out var lobby);
+        _lobbyStore.TryGet(lobbyId, out var lobby);
         return lobby;
     }
 
     public List<LobbyInfoModel> GetAvailableLobbies()
     {
         EnsureCleanupTimerStarted();
-        return [.. _lobbies.Values
+        return [.. _lobbyStore
+            .GetAll()
             .Select(l =>
             {
                 CompactPlayers(l.ConnectedPlayers);
@@ -236,7 +226,7 @@ public class LobbyService(
     public bool IsFull(int lobbyId)
     {
         EnsureCleanupTimerStarted();
-        if (!_lobbies.TryGetValue(lobbyId, out var lobby))
+        if (!_lobbyStore.TryGet(lobbyId, out var lobby))
             return false;
 
         CompactPlayers(lobby.ConnectedPlayers);
@@ -246,7 +236,7 @@ public class LobbyService(
     public void ResetLobby(int lobbyId)
     {
         EnsureCleanupTimerStarted();
-        if (_lobbies.TryGetValue(lobbyId, out var lobby))
+        if (_lobbyStore.TryGet(lobbyId, out var lobby))
         {
             lock (_lockService)
             {
@@ -284,7 +274,7 @@ public class LobbyService(
     {
         lock (_lockService)
         {
-            foreach (var lobby in _lobbies.Values)
+            foreach (var lobby in _lobbyStore.GetAll())
             {
                 var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.ConnectionId == connectionId);
                 if (player != null)
@@ -295,9 +285,9 @@ public class LobbyService(
 
                     if (lobby.ConnectedPlayers.Count == 0)
                     {
-                        if (_lobbies.TryRemove(lobby.Id, out _))
+                        if (_lobbyStore.TryRemove(lobby.Id, out _))
                         {
-                            OnLobbyRemoved(lobby.Id);
+                            //OnLobbyRemoved(lobby.Id);
                             _logger.LogInformation("Removed empty lobby {LobbyId} after connection loss.", lobby.Id);
                             return (player, null); // Lobby is gone
                         }

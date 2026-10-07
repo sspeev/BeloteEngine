@@ -5,7 +5,9 @@ using BeloteEngine.Application.Contracts.Auth;
 using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Application.Rules;
 using BeloteEngine.Application.Services;
+using BeloteEngine.Infrastructure.Auth;
 using BeloteEngine.Infrastructure.Data;
+using BeloteEngine.Infrastructure.Services;
 using BeloteEngine.Presentation.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -21,6 +23,7 @@ public static class ServiceCollectionExtension
     {
         service.AddSingleton<ILobbyService, LobbyService>();
         service.AddSingleton<ILobbyStore, InMemoryLobbyStore>();
+        service.AddSingleton<ILobbyJoinValidator, LobbyJoinValidator>();
         service.AddSingleton<IGameService, GameService>();
         service.AddSingleton<ITrickEvaluator, TrickEvaluator>();
         service.AddSingleton<IPlayValidator, PlayValidator>();
@@ -35,7 +38,7 @@ public static class ServiceCollectionExtension
     {
         service.AddDbContext<BeloteEngineDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
-        service.AddSingleton<IJwtProvider, BeloteEngine.Infrastructure.Auth.JwtProvider>();
+        service.AddSingleton<IJwtProvider, JwtProvider>();
         service.AddScoped<IUserIdentityService, IdentityUserService>();
         return service;
     }

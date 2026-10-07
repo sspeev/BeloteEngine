@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Domain.Entities.Models;
 
+namespace BeloteEngine.Application.Services;
+
 public sealed class InMemoryLobbyStore : ILobbyStore
 {
     private readonly ConcurrentDictionary<int, Lobby> _lobbies = new();
