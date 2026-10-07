@@ -1,13 +1,14 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.Contracts.Auth;
+using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Application.Rules;
 using BeloteEngine.Application.Services;
 using BeloteEngine.Infrastructure.Data;
-using BeloteEngine.Infrastructure.Identity;
-using BeloteEngine.Infrastructure.Session;
 using BeloteEngine.Presentation.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,14 +20,13 @@ public static class ServiceCollectionExtension
     public static IServiceCollection AddApplicationServices(this IServiceCollection service)
     {
         service.AddSingleton<ILobbyService, LobbyService>();
+        service.AddSingleton<ILobbyStore, InMemoryLobbyStore>();
         service.AddSingleton<IGameService, GameService>();
-        service.AddSingleton<IConnectionLimiter, ConnectionLimiter>();
         service.AddSingleton<ITrickEvaluator, TrickEvaluator>();
         service.AddSingleton<IPlayValidator, PlayValidator>();
         service.AddSingleton<IScoreCalculator, ScoreCalculator>();
         service.AddSingleton<CachingService>();
         service.AddSingleton<IAfkTimerService, AfkTimerService>();
-        service.AddSingleton<ISessionService, SessionService>();
 
         return service;
     }
@@ -42,7 +42,7 @@ public static class ServiceCollectionExtension
 
     public static IServiceCollection AddIdentityServices(this IServiceCollection service)
     {
-        service.AddIdentityCore<ApplicationUser>(options =>
+        service.AddIdentityCore<IdentityUser>(options =>
         {
             options.Password.RequireDigit = false;
             options.Password.RequireLowercase = false;

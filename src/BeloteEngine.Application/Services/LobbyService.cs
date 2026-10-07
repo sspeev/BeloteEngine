@@ -16,17 +16,15 @@ public class LobbyService(
     , CachingService _cachingService) : ILobbyService
 {
     private readonly ConcurrentDictionary<int, Lobby> _lobbies = new();
-    //private readonly ConcurrentDictionary<string, int> _lobbyCountByIp = new();
-    //private readonly ConcurrentDictionary<int, string> _lobbyToIp = new();
-    private readonly object _lockObject = new();
-    private readonly object _cleanupTimerLock = new();
+    private readonly Lock _lockService = new();
+    private readonly Lock _cleanupTimerLock = new();
     private Timer? _cleanupTimer;
 
-    public Lobby CreateLobby(string lobbyName, Player creator/*, string ipAddress*/)
+    public Lobby CreateLobby(string lobbyName, Player creator)
     {
         EnsureCleanupTimerStarted();
         lobbyName = InputValidator.SanitizeLobbyName(lobbyName);
-        lock (_lockObject)
+        lock (_lockService)
         {
             if (_lobbies.Count >= MAX_TOTAL_LOBBIES)
                 throw new InvalidOperationException("Server is full. Please try again later.");
@@ -38,11 +36,11 @@ public class LobbyService(
             //     currentCount = 0;
             // }
 
-            if (currentCount >= MAX_LOBBIES_PER_IP)
-            {
-                throw new InvalidOperationException(
-                    $"You can only create {MAX_LOBBIES_PER_IP} lobbies at a time.");
-            }
+            // if (currentCount >= MAX_LOBBIES_PER_IP)
+            // {
+            //     throw new InvalidOperationException(
+            //         $"You can only create {MAX_LOBBIES_PER_IP} lobbies at a time.");
+            // }
 
             var lobby = new Lobby
             {
@@ -62,30 +60,15 @@ public class LobbyService(
                     continue;
                 }
 
-                _lobbyToIp[lobbyId] = ipAddress;
-                _lobbyCountByIp[ipAddress] = currentCount + 1;
+                // _lobbyToIp[lobbyId] = ipAddress;
+                // _lobbyCountByIp[ipAddress] = currentCount + 1;
                 _cachingService.Remove($"{lobbyId}");
 
-                _logger.LogInformation("Created lobby {LobbyId} '{LobbyName}' from IP {IpAddress}",
-                    lobbyId, lobbyName, ipAddress);
+                _logger.LogInformation("Created lobby {LobbyId} '{LobbyName}' from player {}",
+                    lobbyId, lobbyName, creator.Name);
 
                 return lobby;
             }
-        }
-    }
-
-    // Overload for backward compatibility
-    public Lobby CreateLobby(string lobbyName)
-    {
-        EnsureCleanupTimerStarted();
-        return CreateLobby(lobbyName, "unknown");
-    }
-
-    private void OnLobbyRemoved(int lobbyId)
-    {
-        if (_lobbyToIp.TryRemove(lobbyId, out var ipAddress))
-        {
-            _lobbyCountByIp.AddOrUpdate(ipAddress, 0, (key, count) => Math.Max(0, count - 1));
         }
     }
 
@@ -103,7 +86,7 @@ public class LobbyService(
         {
             if (_lobbies.TryRemove(lobbyId, out _))
             {
-                OnLobbyRemoved(lobbyId);
+                //OnLobbyRemoved(lobbyId);
                 _logger.LogInformation("Cleaned up abandoned lobby {LobbyId}", lobbyId);
             }
         }
@@ -121,65 +104,26 @@ public class LobbyService(
 
     private static int NonNullCount(List<Player> players) => players.Count(_ => true);
 
-    public JoinResult JoinLobby(Player player)
+    public JoinResult JoinLobby(int lobbyId, Player player)
     {
         EnsureCleanupTimerStarted();
-        var lobbyId = player.LobbyId ?? 0;
-        if (lobbyId == 0)
+
+        lock (_lockService)
         {
-            return new JoinResult
+            if (lobbyId == 0)
             {
-                Success = false,
-                ErrorMessage = "Invalid lobby ID."
-            };
-        }
-
-        if (!_lobbies.TryGetValue(lobbyId, out var lobby))
-        {
-            return new JoinResult
-            {
-                Success = false,
-                ErrorMessage = $"Lobby {lobbyId} does not exist."
-            };
-        }
-
-        lock (_lockObject)
-        {
-            CompactPlayers(lobby.ConnectedPlayers);
-
-            var existingPlayer = lobby.ConnectedPlayers.FirstOrDefault(p => string.Equals(p.Name, player.Name, OrdinalIgnoreCase));
-            if (existingPlayer != null)
-            {
-                if (!string.IsNullOrWhiteSpace(existingPlayer.SessionId) &&
-                    !string.Equals(existingPlayer.SessionId, player.SessionId, Ordinal))
-                {
-                    return new JoinResult
-                    {
-                        Success = false,
-                        ErrorMessage = "Player name is already in use."
-                    };
-                }
-
-                existingPlayer.ConnectionId = player.ConnectionId;
-                existingPlayer.SessionId = player.SessionId;
-                existingPlayer.Status = Connected;
-                lobby.UpdateActivity();
-                InvalidateLobbyCache(lobbyId);
-
-                return new JoinResult
-                {
-                    Success = true,
-                    Lobby = lobby
-                };
+                return Failure("Invalid lobby ID.");
             }
 
-            if (IsFull(lobbyId))
+            if (!_lobbies.TryGetValue(lobbyId, out var lobby))
             {
-                return new JoinResult
-                {
-                    Success = false,
-                    ErrorMessage = "Lobby is full."
-                };
+                return Failure($"Lobby {lobbyId} does not exist.");
+            }
+
+            var validationError = ValidateJoin(lobby, player);
+            if (validationError is not null)
+            {
+                return Failure(validationError);
             }
 
             lobby.ConnectedPlayers.Add(player);
@@ -197,6 +141,35 @@ public class LobbyService(
         }
     }
 
+    private static string? ValidateJoin(Lobby lobby, Player player)
+    {
+        CompactPlayers(lobby.ConnectedPlayers);
+
+        if (NonNullCount(lobby.ConnectedPlayers) >= 4)
+        {
+            return "Lobby is full.";
+        }
+
+        var existingPlayer = lobby.ConnectedPlayers.FirstOrDefault(existing =>
+            string.Equals(existing.UserId, player.UserId, OrdinalIgnoreCase));
+
+        if (existingPlayer is not null && existingPlayer.LobbyId != 0)
+        {
+            return "Player name is already in use.";
+        }
+
+        return null;
+    }
+
+    private static JoinResult Failure(string errorMessage)
+    {
+        return new JoinResult
+        {
+            Success = false,
+            ErrorMessage = errorMessage
+        };
+    }
+
     public bool LeaveLobby(Player player, int lobbyId)
     {
         EnsureCleanupTimerStarted();
@@ -205,7 +178,7 @@ public class LobbyService(
             return false;
         }
 
-        lock (_lockObject)
+        lock (_lockService)
         {
             var removed = lobby.ConnectedPlayers.RemoveAll(p =>
                 string.Equals(p.Name, player.Name, OrdinalIgnoreCase));
@@ -275,7 +248,7 @@ public class LobbyService(
         EnsureCleanupTimerStarted();
         if (_lobbies.TryGetValue(lobbyId, out var lobby))
         {
-            lock (_lockObject)
+            lock (_lockService)
             {
                 lobby.ConnectedPlayers.Clear();
                 lobby.GameStarted = false;
@@ -309,7 +282,7 @@ public class LobbyService(
     }
     public (Player? player, Lobby? lobby) RemovePlayerByConnectionId(string connectionId)
     {
-        lock (_lockObject)
+        lock (_lockService)
         {
             foreach (var lobby in _lobbies.Values)
             {
