@@ -20,5 +20,5 @@ public interface ILobbyService
 
     public void ResetLobby(int lobbyId);
 
-    public (Player? player, LobbyModel? lobby) RemovePlayerByConnectionId(string connectionId);
+    //public (Player? player, LobbyModel? lobby) RemovePlayerByConnectionId(string connectionId);
 }

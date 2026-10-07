@@ -1,21 +1,23 @@
 using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.Contracts.Caching;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Security;
 using BeloteEngine.Application.Contracts.Lobby;
+using static BeloteEngine.Application.Constants.LobbyConstants;
 using BeloteEngine.Domain.Entities.Models;
+using static BeloteEngine.Domain.Entities.Enums.Status;
 using Microsoft.Extensions.Logging;
 using static System.StringComparison;
-using static BeloteEngine.Application.Constants.LobbyConstants;
-using static BeloteEngine.Domain.Entities.Enums.Status;
 
 namespace BeloteEngine.Application.Services;
 
 public class LobbyService(
     IGameService _gameService
     , ILobbyJoinValidator _joinValidator
+    , ILobbyCreationValidator _createValidator
     , ILobbyStore _lobbyStore
     , ILogger<LobbyService> _logger
-    , CachingService _cachingService) : ILobbyService
+    , ICachingService _cachingService) : ILobbyService
 {
     private readonly Lock _lockService = new();
     private readonly Lock _cleanupTimerLock = new();
@@ -24,46 +26,44 @@ public class LobbyService(
     public Lobby CreateLobby(string lobbyName, Player creator)
     {
         EnsureCleanupTimerStarted();
-        lobbyName = InputValidator.SanitizeLobbyName(lobbyName);
+
         lock (_lockService)
         {
-            if (_lobbyStore.Count >= MAX_TOTAL_LOBBIES)
-                throw new InvalidOperationException("Server is full. Please try again later.");
+            var validation = _createValidator.Validate(
+                _lobbyStore.Count,
+                creator);
 
-            if (creator.LobbyId != 0)
-                throw new InvalidOperationException("Cannot host lobby while being in another!");
+            if (!validation.IsValid)
+            {
+                throw new InvalidOperationException(validation.ErrorMessage);
+            }
 
             var lobby = new Lobby
             {
                 Game = _gameService.Creator(),
-                Name = lobbyName,
+                Name = InputValidator.SanitizeLobbyName(lobbyName),
                 CreatedAt = DateTime.UtcNow,
                 LastActivity = DateTime.UtcNow
             };
 
-            while (true)
-            {
-                var lobbyId = Random.Shared.Next(1000, 9999);
-                lobby.Id = lobbyId;
+            AddLobbyWithGeneratedId(lobby);
 
-                if (!_lobbyStore.TryAdd(lobbyId, lobby))
-                {
-                    continue;
-                }
-                _cachingService.Remove($"{lobbyId}");
+            _cachingService.Remove($"{lobby.Id}");
 
-                _logger.LogInformation("Created lobby {LobbyId} '{LobbyName}' from player {}",
-                    lobbyId, lobbyName, creator.Name);
+            _logger.LogInformation(
+                "Created lobby {LobbyId} '{LobbyName}' from player {PlayerName}",
+                lobby.Id,
+                lobby.Name,
+                creator.Name);
 
-                return lobby;
-            }
+            return lobby;
         }
     }
 
     private void CleanupAbandonedLobbies()
     {
         var now = DateTime.UtcNow;
-        var lobbiestoRemove = _lobbies.Values
+        var lobbiestoRemove = _lobbyStore.GetAll()
             .Where(l =>
                 l.ConnectedPlayers.Count == 0 ||
                 (now - l.LastActivity) > TimeSpan.FromMinutes(30))
@@ -72,7 +72,7 @@ public class LobbyService(
 
         foreach (var lobbyId in lobbiestoRemove)
         {
-            if (_lobbies.TryRemove(lobbyId, out _))
+            if (_lobbyStore.TryRemove(lobbyId, out _))
             {
                 //OnLobbyRemoved(lobbyId);
                 _logger.LogInformation("Cleaned up abandoned lobby {LobbyId}", lobbyId);
@@ -270,32 +270,45 @@ public class LobbyService(
                 TimeSpan.FromMinutes(5));
         }
     }
-    public (Player? player, Lobby? lobby) RemovePlayerByConnectionId(string connectionId)
-    {
-        lock (_lockService)
-        {
-            foreach (var lobby in _lobbyStore.GetAll())
-            {
-                var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.ConnectionId == connectionId);
-                if (player != null)
-                {
-                    lobby.ConnectedPlayers.Remove(player);
-                    lobby.UpdateActivity();
-                    InvalidateLobbyCache(lobby.Id);
+    // public (Player? player, Lobby? lobby) RemovePlayerByConnectionId(string connectionId)
+    // {
+    //     lock (_lockService)
+    //     {
+    //         foreach (var lobby in _lobbyStore.GetAll())
+    //         {
+    //             var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.ConnectionId == connectionId);
+    //             if (player != null)
+    //             {
+    //                 lobby.ConnectedPlayers.Remove(player);
+    //                 lobby.UpdateActivity();
+    //                 InvalidateLobbyCache(lobby.Id);
 
-                    if (lobby.ConnectedPlayers.Count == 0)
-                    {
-                        if (_lobbyStore.TryRemove(lobby.Id, out _))
-                        {
-                            //OnLobbyRemoved(lobby.Id);
-                            _logger.LogInformation("Removed empty lobby {LobbyId} after connection loss.", lobby.Id);
-                            return (player, null); // Lobby is gone
-                        }
-                    }
-                    return (player, lobby);
-                }
+    //                 if (lobby.ConnectedPlayers.Count == 0)
+    //                 {
+    //                     if (_lobbyStore.TryRemove(lobby.Id, out _))
+    //                     {
+    //                         //OnLobbyRemoved(lobby.Id);
+    //                         _logger.LogInformation("Removed empty lobby {LobbyId} after connection loss.", lobby.Id);
+    //                         return (player, null); // Lobby is gone
+    //                     }
+    //                 }
+    //                 return (player, lobby);
+    //             }
+    //         }
+    //     }
+    //     return (null, null);
+    // }
+    private void AddLobbyWithGeneratedId(Lobby lobby)
+    {
+        while (true)
+        {
+            var lobbyId = Random.Shared.Next(1000, 9999);
+            lobby.Id = lobbyId;
+
+            if (_lobbyStore.TryAdd(lobbyId, lobby))
+            {
+                return;
             }
         }
-        return (null, null);
     }
 }

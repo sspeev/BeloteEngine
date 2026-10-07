@@ -1,11 +1,12 @@
+using BeloteEngine.Application.Contracts.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
-namespace BeloteEngine.Application.Services;
+namespace BeloteEngine.Infrastructure.Services;
 
 public class CachingService(
       IMemoryCache cache
-    , ILogger<CachingService> logger)
+    , ILogger<CachingService> logger) : ICachingService
 {
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<CachingService> _logger = logger;

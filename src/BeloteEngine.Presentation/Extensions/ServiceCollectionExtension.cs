@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.Contracts.Auth;
+using BeloteEngine.Application.Contracts.Caching;
 using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Application.Rules;
 using BeloteEngine.Application.Services;
@@ -24,11 +25,12 @@ public static class ServiceCollectionExtension
         service.AddSingleton<ILobbyService, LobbyService>();
         service.AddSingleton<ILobbyStore, InMemoryLobbyStore>();
         service.AddSingleton<ILobbyJoinValidator, LobbyJoinValidator>();
+        service.AddSingleton<ILobbyCreationValidator, LobbyCreationValidator>();
         service.AddSingleton<IGameService, GameService>();
         service.AddSingleton<ITrickEvaluator, TrickEvaluator>();
         service.AddSingleton<IPlayValidator, PlayValidator>();
         service.AddSingleton<IScoreCalculator, ScoreCalculator>();
-        service.AddSingleton<CachingService>();
+        
         service.AddSingleton<IAfkTimerService, AfkTimerService>();
 
         return service;
@@ -39,7 +41,9 @@ public static class ServiceCollectionExtension
         service.AddDbContext<BeloteEngineDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         service.AddSingleton<IJwtProvider, JwtProvider>();
+        service.AddSingleton<ICachingService, CachingService>();
         service.AddScoped<IUserIdentityService, IdentityUserService>();
+        
         return service;
     }
 
