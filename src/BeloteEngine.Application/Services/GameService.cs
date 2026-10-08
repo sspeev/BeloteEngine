@@ -1,8 +1,9 @@
-﻿using BeloteEngine.Domain.Entities.Enums;
+using BeloteEngine.Domain.Entities.Enums;
 using BeloteEngine.Domain.Entities.Models;
 using BeloteEngine.Domain.Entities.Records;
 using static BeloteEngine.Domain.Entities.Enums.Announces;
 using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.Contracts.Game;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Rules;
 using Microsoft.Extensions.Logging;
@@ -12,25 +13,14 @@ namespace BeloteEngine.Application.Services;
 public class GameService(
       ILogger<GameService> logger
     , ITrickEvaluator trickEvaluator
-    , IPlayValidator playValidator
     , IScoreCalculator scoreCalculator
+    , IGameValidation gameValidation
     )
     : IGameService
 {
-    private static void ValidateLobby(Lobby lobby)
-    {
-        ArgumentNullException.ThrowIfNull(lobby);
-        ArgumentNullException.ThrowIfNull(lobby.Game);
-
-        if (lobby.Game.Teams == null || lobby.Game.Teams.Any(t => t.Players.Length != 2))
-        {
-            throw new ArgumentException($"Invalid teams configuration. Each team must have exactly 2 players.");
-        }
-    }
-
     public void InitialPhase(Lobby lobby)
     {
-        ValidateLobby(lobby);
+        gameValidation.ValidateLobby(lobby);
 
         lobby.Game.Deck.Cards = CardsRandomizer(lobby.Game.Deck.Cards);
         lobby.Game.RoundQueue = InitSortedPlayers(lobby.Game.Teams);
@@ -70,17 +60,10 @@ public class GameService(
     public PlayCardResult PlayCard(string playerName, Card card, Lobby lobby)
     {
         var game = lobby.Game;
-        var round = game.CurrentRound
-            ?? throw new InvalidOperationException("No active round.");
-
-        var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
-            ?? throw new ArgumentException($"Player {playerName} not found.");
-
-        if (game.CurrentPlayer.Name != playerName)
-            throw new InvalidOperationException("It's not your turn.");
-
-        if (!playValidator.IsValidPlay(card, player, round.CurrentTrick, round.Trump))
-            throw new InvalidOperationException("Invalid card play.");
+        var round = gameValidation.ValidateActiveRound(game);
+        var player = gameValidation.ValidatePlayerForCardPlay(lobby, playerName);
+        gameValidation.ValidateTurn(game, playerName);
+        gameValidation.ValidateCardPlay(card, player, round.CurrentTrick, round.Trump);
 
         round.CurrentTrick.PlayedCards.Add(new PlayedCard(player, card));
         player.Hand.RemoveAll(c => c.Suit == card.Suit && c.Rank == card.Rank);
@@ -152,7 +135,7 @@ public class GameService(
     public Player PlayerToStartAnnounceAndPlay(List<Player> players)
     {
         var announcer = RotatePlayerQueue(players);
-        announcer.Action = Domain.Entities.Enums.Action.AnnounceAndStart
+        announcer.Action = Domain.Entities.Enums.Action.AnnounceAndStart;
         logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
         return announcer;
     }
@@ -309,49 +292,26 @@ public class GameService(
 
     public Player MakeBid(string playerName, string bid, Lobby lobby)
     {
-        var player = lobby.ConnectedPlayers.FirstOrDefault(p => p.Name == playerName)
-            ?? throw new ArgumentException($"Player {playerName} not found in the lobby.");
-
-        if (!Enum.TryParse(bid, out Announces announce))
-        {
-            throw new ArgumentException($"Invalid bid: {bid} or failed to parse");
-        }
+        var player = gameValidation.ValidatePlayer(lobby, playerName);
+        var announce = gameValidation.ParseBid(bid);
         player.AnnounceOffer = announce;
+        gameValidation.ValidateBid(lobby.Game, player, announce);
 
         // Check if the player is passing or making a real bid
-    if (announce != Pass)
-    {
-        if (announce == Announces.Double)
+        if (announce != Pass)
         {
-            if (lobby.Game.CurrentAnnounce == None || lobby.Game.CurrentAnnounce == Announces.Double || lobby.Game.CurrentAnnounce == Announces.ReDouble)
-                throw new InvalidOperationException("You can only double an active suit or NoTrump bid!");
-
-            if (lobby.Game.ContractPlayer == null || IsOnTeam(player, lobby.Game.Teams.First(t => IsOnTeam(lobby.Game.ContractPlayer, t))))
-                throw new InvalidOperationException("You can only double an opponent's bid!");
-
-            if (lobby.Game.CurrentRound.IsDoubled)
-                throw new InvalidOperationException("This bid is already doubled!");
-
+            if (announce == Announces.Double)
+        {
             lobby.Game.CurrentRound.IsDoubled = true;
-            lobby.Game.PassCounter = 0; // Reset pass counter to allow opponents to respond/redouble
+            lobby.Game.PassCounter = 0;
             logger.LogInformation("Player {PlayerName} DOUBLED the contract!", playerName);
         }
         else if (announce == Announces.ReDouble)
         {
-            if (!lobby.Game.CurrentRound.IsDoubled)
-                throw new InvalidOperationException("You can only redouble a doubled contract!");
-
-            if (lobby.Game.CurrentRound.IsReDoubled)
-                throw new InvalidOperationException("This bid is already redoubled!");
-
-            if (lobby.Game.ContractPlayer == null || !IsOnTeam(player, lobby.Game.Teams.First(t => IsOnTeam(lobby.Game.ContractPlayer, t))))
-                throw new InvalidOperationException("You can only redouble your own team's doubled contract!");
-
             lobby.Game.CurrentRound.IsReDoubled = true;
             lobby.Game.PassCounter = 0;
             logger.LogInformation("Player {PlayerName} REDOUBLED the contract!", playerName);
         }
-        // Player made a regular bid - check if it's higher than current announce
         else if (lobby.Game.CurrentAnnounce != None && lobby.Game.CurrentAnnounce < announce)
         {
             logger.LogInformation("Current announce updated to: {Announce}", announce);
@@ -363,17 +323,12 @@ public class GameService(
         }
         else if (lobby.Game.CurrentAnnounce == None)
         {
-            // First real bid
             logger.LogInformation("First announce set to: {Announce}", announce);
             lobby.Game.CurrentAnnounce = announce;
             lobby.Game.ContractPlayer = player;
             lobby.Game.CurrentRound.IsDoubled = false;
             lobby.Game.CurrentRound.IsReDoubled = false;
             lobby.Game.PassCounter = 0;
-        }
-        else
-        {
-            throw new InvalidOperationException("Your bid must be higher than the current announce!");
         }
     }
         else
@@ -394,7 +349,7 @@ public class GameService(
 
     public Game GameReset(Lobby lobby)
     {
-        ValidateLobby(lobby);
+        gameValidation.ValidateLobby(lobby);
         var game = lobby.Game;
         game.CurrentAnnounce = None;
         game.PassCounter = 0;

@@ -4,6 +4,7 @@ using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.Contracts.Auth;
 using BeloteEngine.Application.Contracts.Caching;
 using BeloteEngine.Application.Contracts.Lobby;
+using BeloteEngine.Application.Contracts.Game;
 using BeloteEngine.Application.Rules;
 using BeloteEngine.Application.Services;
 using BeloteEngine.Infrastructure.Auth;
@@ -27,6 +28,7 @@ public static class ServiceCollectionExtension
         service.AddSingleton<ILobbyJoinValidator, LobbyJoinValidator>();
         service.AddSingleton<ILobbyCreationValidator, LobbyCreationValidator>();
         service.AddSingleton<IGameService, GameService>();
+        service.AddSingleton<IGameValidation, GameValidation>();
         service.AddSingleton<ITrickEvaluator, TrickEvaluator>();
         service.AddSingleton<IPlayValidator, PlayValidator>();
         service.AddSingleton<IScoreCalculator, ScoreCalculator>();
