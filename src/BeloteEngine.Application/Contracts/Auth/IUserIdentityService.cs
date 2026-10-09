@@ -1,21 +1,17 @@
-namespace BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.DTOs.Auth;
+
+namespace BeloteEngine.Application.Contracts.Auth;
 
 public interface IUserIdentityService
 {
-    Task<IdentityOperationResult> CreateAsync(
+    Task<IdentityOperationResult> RegisterAsync(
         string username,
         string email,
         string password,
         CancellationToken cancellationToken);
-}
 
-public sealed record IdentityOperationResult(
-    bool Succeeded,
-    IReadOnlyCollection<string> Errors)
-{
-    public static IdentityOperationResult Success() =>
-        new(true, []);
-
-    public static IdentityOperationResult Failure(IEnumerable<string> errors) =>
-        new(false, [.. errors]);
+    Task<IdentityOperationResult> LoginAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken);
 }

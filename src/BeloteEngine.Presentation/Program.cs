@@ -17,10 +17,6 @@ builder.Services.AddMemoryCache(options =>
     options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
 });
 
-var applicationAssembly = typeof(CreateUserCommand).Assembly;
-builder.Services.AddMediatR(config =>
-    config.RegisterServicesFromAssembly(applicationAssembly));
-
 builder.Services.AddSecurityServices(builder.Environment, builder.Configuration);
 builder.AddPresentation();
 builder.Services.AddSignalRConfiguration(builder.Environment);

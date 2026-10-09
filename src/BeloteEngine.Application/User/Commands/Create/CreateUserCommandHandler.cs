@@ -1,4 +1,5 @@
 using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.Contracts.Auth;
 using MediatR;
 
 namespace BeloteEngine.Application.User.Commands.Create;
@@ -11,7 +12,7 @@ public sealed class CreateUserCommandHandler(
         CreateUserCommand request,
         CancellationToken cancellationToken)
     {
-        var result = await userIdentityService.CreateAsync(
+        var result = await userIdentityService.RegisterAsync(
             request.Username,
             request.Email,
             request.Password,

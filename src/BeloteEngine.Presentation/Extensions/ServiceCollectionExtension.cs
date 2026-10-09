@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using BeloteEngine.Application.User.Commands.Create;
 
 namespace BeloteEngine.Presentation.Extensions;
 
@@ -32,8 +33,11 @@ public static class ServiceCollectionExtension
         service.AddSingleton<ITrickEvaluator, TrickEvaluator>();
         service.AddSingleton<IPlayValidator, PlayValidator>();
         service.AddSingleton<IScoreCalculator, ScoreCalculator>();
-        
         service.AddSingleton<IAfkTimerService, AfkTimerService>();
+
+        var applicationAssembly = typeof(CreateUserCommand).Assembly;
+        service.AddMediatR(config =>
+            config.RegisterServicesFromAssembly(applicationAssembly));
 
         return service;
     }
@@ -45,7 +49,7 @@ public static class ServiceCollectionExtension
         service.AddSingleton<IJwtProvider, JwtProvider>();
         service.AddSingleton<ICachingService, CachingService>();
         service.AddScoped<IUserIdentityService, IdentityUserService>();
-        
+
         return service;
     }
 
@@ -118,11 +122,22 @@ public static class ServiceCollectionExtension
         })
         .AddJwtBearer(options =>
         {
-            options.TokenValidationParameters.ValidIssuer = configuration["Jwt:Issuer"];
-            options.TokenValidationParameters.ValidAudience = configuration["Jwt:Audience"];
-            options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!));
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters = new()
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = configuration["Jwt:Issuer"],
+                ValidAudience = configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]!)),
+                ClockSkew = TimeSpan.Zero  // Disable the default 5-minute grace period
+            };
         });
+
+        service.AddAuthorization();
 
         return service;
     }
@@ -138,5 +153,4 @@ public static class ServiceCollectionExtension
         });
         return service;
     }
-
 }
