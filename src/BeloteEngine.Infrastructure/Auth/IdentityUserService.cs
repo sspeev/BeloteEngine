@@ -1,11 +1,8 @@
-using System.Text;
-using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.Contracts.Auth;
-using BeloteEngine.Application.DTOs.Auth;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
+using BeloteEngine.Application.DTOs.Auth;
 
-namespace BeloteEngine.Infrastructure.Services;
+namespace BeloteEngine.Infrastructure.Auth;
 
 public sealed class IdentityUserService(
     UserManager<IdentityUser> userManager
@@ -20,9 +17,8 @@ public sealed class IdentityUserService(
         {
             return IdentityOperationResult.Failure(["Login failed"]);
         }
-        var roles = await userManager.GetRolesAsync(user);
-
-        var key = jwtProvider.GenerateToken(user.Id, user.UserName);
+        var token = jwtProvider.GenerateToken(user.Id, user.UserName!);
+        return IdentityOperationResult.Success(token);
     }
 
     public async Task<IdentityOperationResult> RegisterAsync(
@@ -40,10 +36,13 @@ public sealed class IdentityUserService(
         };
 
         var result = await userManager.CreateAsync(user, password);
-        //jwtProvider.GenerateToken()
-        return result.Succeeded
-            ? IdentityOperationResult.Success()
-            : IdentityOperationResult.Failure(
+        if (!result.Succeeded)
+        {
+            return IdentityOperationResult.Failure(
                 result.Errors.Select(error => error.Description));
+        }
+
+        var token = jwtProvider.GenerateToken(user.Id, user.UserName!);
+        return IdentityOperationResult.Success(token);
     }
 }

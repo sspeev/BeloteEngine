@@ -1,8 +1,6 @@
-using BeloteEngine.Application.Contracts;
 using BeloteEngine.Application.User.Commands.Create;
-using BeloteEngine.Infrastructure.Data;
+using BeloteEngine.Application.User.Commands.Login;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 
@@ -11,13 +9,9 @@ namespace BeloteEngine.Presentation.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 public class AuthController(
-    UserManager<ApplicationUser> userManager,
-    IJwtProvider jwtProvider,
     ISender sender
     ) : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager = userManager;
-    private readonly IJwtProvider _jwtProvider = jwtProvider;
 
     [HttpPost("register")]
     [AllowAnonymous]
@@ -34,7 +28,7 @@ public class AuthController(
 
         if (result.Succeeded)
         {
-            return Ok();
+            return Ok(new { Token = result.Token });
         }
 
         return BadRequest(result.Errors);
@@ -42,20 +36,20 @@ public class AuthController(
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
+        var result = await sender.Send(
+            new LoginUserCommand(request.Email, request.Password),
+            cancellationToken);
+
+        if (!result.Succeeded)
         {
-            return Unauthorized("Invalid credentials.");
+            return Unauthorized(result.Errors);
         }
 
-        var token = _jwtProvider.GenerateToken(user.Id, user.UserName!);
-
-        return Ok(new
-        {
-            Token = token
-        });
+        return Ok(new { Token = result.Token });
     }
 }
 

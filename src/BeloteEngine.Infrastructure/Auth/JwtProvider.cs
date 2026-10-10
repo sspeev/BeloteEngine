@@ -7,38 +7,33 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BeloteEngine.Infrastructure.Auth;
 
-public class JwtProvider(IConfiguration configuration) : IJwtProvider
+public sealed class JwtProvider(IConfiguration configuration) : IJwtProvider
 {
-    private readonly IConfiguration _configuration = configuration;
-
     public string GenerateToken(string userId, string username)
     {
-        var claims = new List<Claim>()
-        {
-            new(JwtRegisteredClaimNames.Sub, userId),
-            new(JwtRegisteredClaimNames.Name, username)
-        };
-        var secretKey = _configuration["Jwt:Secret"]!;
-        var signingKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(secretKey));
+        var secretKey = configuration["Jwt:SecretKey"]
+            ?? throw new InvalidOperationException("Jwt:SecretKey is not configured.");
 
-        var credentials = new SigningCredentials(signingKey,
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId),
+            new Claim(JwtRegisteredClaimNames.Name, username)
+        };
+
+        var credentials = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
             SecurityAlgorithms.HmacSha256);
 
-        var tokenDescriptor = new SecurityTokenDescriptor()
+        var descriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.AddHours(2),
             SigningCredentials = credentials,
-            Issuer = _configuration["Jwt:Issuer"],
-            Audience = _configuration["Jwt:Audience"]
+            Issuer = configuration["Jwt:Issuer"],
+            Audience = configuration["Jwt:Audience"]
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
-
-        var accessToken = tokenHandler.WriteToken(securityToken);
-
-        return accessToken;
+        return tokenHandler.WriteToken(tokenHandler.CreateToken(descriptor));
     }
 }
