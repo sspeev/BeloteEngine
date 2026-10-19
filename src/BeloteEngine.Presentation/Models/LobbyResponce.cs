@@ -1,13 +1,12 @@
-﻿using BeloteEngine.Domain.Entities.Models;
 using BeloteEngine.Application.DTOs;
 
 namespace BeloteEngine.Presentation.Models;
 
-public class LobbyResponse
+public sealed class LobbyResponse
 {
-    public Lobby? Lobby { get; set; }
+    public LobbyResponseModel? Lobby { get; init; }
 
-    public LobbyInfoModel[]? Lobbies { get; set; }
+    public LobbyInfoModel[]? Lobbies { get; init; }
 
-    public bool? IsHostHere { get; set; }
+    public bool? IsHostHere { get; init; }
 }

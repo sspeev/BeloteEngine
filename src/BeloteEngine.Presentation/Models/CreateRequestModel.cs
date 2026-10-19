@@ -5,7 +5,7 @@ namespace BeloteEngine.Presentation.Models;
 public class CreateRequestModel
 {
     [Required(ErrorMessage = "UserId is required")]
-    public int UserId { get; set; }
+    public required string UserId { get; set; }
 
     [Required(ErrorMessage = "Player name is required")]
     [StringLength(50, MinimumLength = 1)]

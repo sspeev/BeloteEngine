@@ -1,9 +1,9 @@
 using BeloteEngine.Application.Contracts;
-using BeloteEngine.Application.Contracts.Caching;
+//using BeloteEngine.Application.Contracts.Caching;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Security;
 using BeloteEngine.Application.Contracts.Lobby;
-using static BeloteEngine.Application.Constants.LobbyConstants;
+//using static BeloteEngine.Application.Constants.LobbyConstants;
 using BeloteEngine.Domain.Entities.Models;
 using static BeloteEngine.Domain.Entities.Enums.Status;
 using Microsoft.Extensions.Logging;
@@ -17,7 +17,8 @@ public class LobbyService(
     , ILobbyCreationValidator _createValidator
     , ILobbyStore _lobbyStore
     , ILogger<LobbyService> _logger
-    , ICachingService _cachingService) : ILobbyService
+    //, ICachingService _cachingService
+    ) : ILobbyService
 {
     private readonly Lock _lockService = new();
     private readonly Lock _cleanupTimerLock = new();
@@ -48,7 +49,7 @@ public class LobbyService(
 
             AddLobbyWithGeneratedId(lobby);
 
-            _cachingService.Remove($"{lobby.Id}");
+           // _cachingService.Remove($"{lobby.Id}");
 
             _logger.LogInformation(
                 "Created lobby {LobbyId} '{LobbyName}' from player {PlayerName}",
@@ -253,7 +254,7 @@ public class LobbyService(
     private void InvalidateLobbyCache(int lobbyId)
     {
         var cacheKey = $"{lobbyId}";
-        _cachingService.Remove(cacheKey);
+        //_cachingService.Remove(cacheKey);
     }
 
     private void EnsureCleanupTimerStarted()

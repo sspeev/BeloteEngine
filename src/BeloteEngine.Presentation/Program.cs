@@ -1,4 +1,3 @@
-using BeloteEngine.Application.User.Commands.Create;
 using BeloteEngine.Presentation.Extensions;
 using BeloteEngine.Presentation.Hubs;
 using Microsoft.AspNetCore.Http.Connections;

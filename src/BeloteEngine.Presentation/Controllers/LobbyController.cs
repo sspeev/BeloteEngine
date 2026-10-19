@@ -1,5 +1,6 @@
 using BeloteEngine.Application.Contracts.Auth;
 using BeloteEngine.Application.Contracts.Lobby;
+using BeloteEngine.Domain.Entities.Models;
 using BeloteEngine.Presentation.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,16 +22,29 @@ public sealed class LobbyController(
 {
 
     [HttpPost("create")]
-    public async Task<IActionResult> CreateLobby([FromBody] CreateRequestModel request)
+    public async Task<IActionResult> CreateLobby(
+        [FromBody] CreateRequestModel request,
+        CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
         try
         {
-            var creator = userIdentityService.FindByIdAsync(request.UserId);
+            var user = await userIdentityService.FindByIdAsync(
+                request.UserId,
+                cancellationToken);
+
+            if (user is null)
+                return NotFound("User not found.");
+
+            var creator = new Player
+            {
+                UserId = user.Id,
+                Name = request.PlayerName,
+                Hoster = true
+            };
+
             var lobby = lobbyService.CreateLobby(request.LobbyName, creator);
 
             return CreatedAtAction(
@@ -38,7 +52,7 @@ public sealed class LobbyController(
                 new { lobbyId = lobby.Id },
                 new LobbyResponse
                 {
-                    Lobby = lobby
+                    Lobby = LobbyResponseModel.FromDomain(lobby)
                 });
         }
         catch (InvalidOperationException ex)
@@ -68,16 +82,7 @@ public sealed class LobbyController(
 
         return Ok(new
         {
-            Lobby = new
-            {
-                Id = lobby.Id,
-                Name = lobby.Name,
-                ConnectedPlayers = lobby.ConnectedPlayers.ToArray(),
-                GamePhase = lobby.GamePhase,
-                GameStarted = lobby.GameStarted,
-                Game = lobby.Game,
-                PlayerCount = lobby.ConnectedPlayers.Count
-            }
+            Lobby = LobbyResponseModel.FromDomain(lobby)
         });
     }
 }
