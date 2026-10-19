@@ -1,4 +1,6 @@
-﻿namespace BeloteEngine.Domain.Entities.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BeloteEngine.Domain.Entities.Models;
 
 public class Lobby
 {
