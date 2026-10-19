@@ -1,4 +1,4 @@
-using BeloteEngine.Application.User.Commands.Create;
+using BeloteEngine.Application.User.Commands.Register;
 using BeloteEngine.Application.User.Commands.Login;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,7 @@ public class AuthController(
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(
-            new CreateUserCommand(
+            new RegisterUserCommand(
                 request.Username,
                 request.Email,
                 request.Password),

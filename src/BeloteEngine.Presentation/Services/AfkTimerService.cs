@@ -12,7 +12,7 @@ namespace BeloteEngine.Presentation.Services;
 /// and their connection is aborted after a short grace period.
 /// </summary>
 public sealed class AfkTimerService(
-    IHubContext<Hubs.BeloteHub, Hubs.IBeloteClient> hubContext,
+    IHubContext<BeloteHub, IBeloteClient> hubContext,
     IConfiguration configuration)
     : IAfkTimerService
 {

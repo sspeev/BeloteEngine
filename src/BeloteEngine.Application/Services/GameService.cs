@@ -1,4 +1,5 @@
 using BeloteEngine.Domain.Entities.Enums;
+using PlayerAction = BeloteEngine.Domain.Entities.Enums.Action;
 using BeloteEngine.Domain.Entities.Models;
 using BeloteEngine.Domain.Entities.Records;
 using static BeloteEngine.Domain.Entities.Enums.Announces;
@@ -14,8 +15,7 @@ public class GameService(
       ILogger<GameService> logger
     , ITrickEvaluator trickEvaluator
     , IScoreCalculator scoreCalculator
-    , IGameValidation gameValidation
-    )
+    , IGameValidation gameValidation)
     : IGameService
 {
     public void InitialPhase(Lobby lobby)
@@ -41,7 +41,7 @@ public class GameService(
             AnnouncingTeam = GetTeamContainingPlayer(game, game.ContractPlayer),
         };
         var starter = lobby.ConnectedPlayers.First(p => 
-            p.Action == Domain.Entities.Enums.Action.AnnounceAndStart);
+            p.Action == PlayerAction.AnnounceAndStart);
 
         // Align RoundQueue to the Starter so GetNextPlayer is correct from the very first card.
         // Previously this was a bare CurrentPlayer = Starter which left RoundQueue pointing at
@@ -120,25 +120,30 @@ public class GameService(
 
     public Player PlayerToSplitCards(List<Player> players)
     {
-        var splitter = RotatePlayerQueue(players);
-        splitter.Action = Domain.Entities.Enums.Action.Split;
-        logger.LogInformation("Current player to split cards: {PlayerName}", splitter.Name);
-        return splitter;
+        return AssignNextAction(players, PlayerAction.Split, "split cards");
     }
+
     public Player PlayerToDealCards(List<Player> players)
     {
-        var dealer = RotatePlayerQueue(players);
-        dealer.Action = Domain.Entities.Enums.Action.Deal;
-        logger.LogInformation("Current player to deal cards: {PlayerName}", dealer.Name);
-        return dealer;
+        return AssignNextAction(players, PlayerAction.Deal, "deal cards");
     }
+
     public Player PlayerToStartAnnounceAndPlay(List<Player> players)
     {
-        var announcer = RotatePlayerQueue(players);
-        announcer.Action = Domain.Entities.Enums.Action.AnnounceAndStart;
-        logger.LogInformation("Current player to start announce: {PlayerName}", announcer.Name);
-        return announcer;
+        return AssignNextAction(players, PlayerAction.AnnounceAndStart, "start announce");
     }
+
+    private Player AssignNextAction(List<Player> players, PlayerAction action, string actionDescription)
+    {
+        var player = RotatePlayerQueue(players);
+        foreach (var queuedPlayer in players)
+            queuedPlayer.Action = PlayerAction.None;
+
+        player.Action = action;
+        logger.LogInformation("Current player to {ActionDescription}: {PlayerName}", actionDescription, player.Name);
+        return player;
+    }
+
     public Player GetNextPlayer(List<Player> players)
     {
         var nextPlayer = RotatePlayerQueue(players);

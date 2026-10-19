@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using BeloteEngine.Application.User.Commands.Create;
+using BeloteEngine.Application.User.Commands.Register;
 
 namespace BeloteEngine.Presentation.Extensions;
 
@@ -34,8 +34,9 @@ public static class ServiceCollectionExtension
         service.AddSingleton<IPlayValidator, PlayValidator>();
         service.AddSingleton<IScoreCalculator, ScoreCalculator>();
         service.AddSingleton<IAfkTimerService, AfkTimerService>();
+        service.AddSingleton<IConnectionRegistry, ConnectionRegistry>();
 
-        var applicationAssembly = typeof(CreateUserCommand).Assembly;
+        var applicationAssembly = typeof(RegisterUserCommand).Assembly;
         service.AddMediatR(config =>
             config.RegisterServicesFromAssembly(applicationAssembly));
 
@@ -47,7 +48,7 @@ public static class ServiceCollectionExtension
         service.AddDbContext<BeloteEngineDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
         service.AddSingleton<IJwtProvider, JwtProvider>();
-        service.AddSingleton<ICachingService, CachingService>();
+        //service.AddSingleton<ICachingService, CachingService>();
         service.AddScoped<IUserIdentityService, IdentityUserService>();
 
         return service;

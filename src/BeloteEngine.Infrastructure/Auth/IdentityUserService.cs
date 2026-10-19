@@ -8,11 +8,25 @@ public sealed class IdentityUserService(
     UserManager<IdentityUser> userManager
     , IJwtProvider jwtProvider) : IUserIdentityService
 {
+    public async Task<IdentityUserInfo?> FindByIdAsync(string userId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await userManager.FindByIdAsync(userId);
+
+        return user is null
+            ? null
+            : new IdentityUserInfo(
+                user.Id,
+                user.UserName ?? string.Empty,
+                user.Email);
+    }
+
     public async Task<IdentityOperationResult> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(email);
 
-        if(user is null ||
+        if (user is null ||
             !await userManager.CheckPasswordAsync(user, password))
         {
             return IdentityOperationResult.Failure(["Login failed"]);
@@ -45,4 +59,5 @@ public sealed class IdentityUserService(
         var token = jwtProvider.GenerateToken(user.Id, user.UserName!);
         return IdentityOperationResult.Success(token);
     }
+
 }

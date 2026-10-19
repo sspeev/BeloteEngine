@@ -1,74 +1,74 @@
-using BeloteEngine.Application.Contracts.Caching;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
+// using BeloteEngine.Application.Contracts.Caching;
+// using Microsoft.Extensions.Caching.Memory;
+// using Microsoft.Extensions.Logging;
 
-namespace BeloteEngine.Infrastructure.Services;
+// namespace BeloteEngine.Infrastructure.Services;
 
-public class CachingService(
-      IMemoryCache cache
-    , ILogger<CachingService> logger) : ICachingService
-{
-    private readonly IMemoryCache _cache = cache;
-    private readonly ILogger<CachingService> _logger = logger;
+// public class CachingService(
+//       IMemoryCache cache
+//     , ILogger<CachingService> logger) : ICachingService
+// {
+//     private readonly IMemoryCache _cache = cache;
+//     private readonly ILogger<CachingService> _logger = logger;
 
-    /// <summary>
-    /// Get or create a cached item with specified expiration
-    /// </summary>
-    public T GetOrCreate<T>(string key, Func<T> factory,
-        TimeSpan? absoluteExpiration = null, TimeSpan? slidingExpiration = null)
-    {
-        if (_cache.TryGetValue(key, out T cachedValue))
-        {
-            _logger.LogDebug("Cache HIT:  {CacheKey}", key);
-            return cachedValue;
-        }
+//     /// <summary>
+//     /// Get or create a cached item with specified expiration
+//     /// </summary>
+//     public T GetOrCreate<T>(string key, Func<T> factory,
+//         TimeSpan? absoluteExpiration = null, TimeSpan? slidingExpiration = null)
+//     {
+//         if (_cache.TryGetValue(key, out T cachedValue))
+//         {
+//             _logger.LogDebug("Cache HIT:  {CacheKey}", key);
+//             return cachedValue;
+//         }
 
-        _logger.LogDebug("Cache MISS: {CacheKey}", key);
-        var value = factory();
+//         _logger.LogDebug("Cache MISS: {CacheKey}", key);
+//         var value = factory();
 
-        if (value != null)
-        {
-            var options = new MemoryCacheEntryOptions
-            {
-                // Absolute expiration - cache expires after this time no matter what
-                AbsoluteExpirationRelativeToNow = absoluteExpiration ?? TimeSpan.FromMinutes(30),
+//         if (value != null)
+//         {
+//             var options = new MemoryCacheEntryOptions
+//             {
+//                 // Absolute expiration - cache expires after this time no matter what
+//                 AbsoluteExpirationRelativeToNow = absoluteExpiration ?? TimeSpan.FromMinutes(30),
 
-                // Sliding expiration - resets timer if accessed
-                SlidingExpiration = slidingExpiration ?? TimeSpan.FromMinutes(10),
+//                 // Sliding expiration - resets timer if accessed
+//                 SlidingExpiration = slidingExpiration ?? TimeSpan.FromMinutes(10),
 
-                // Priority - determines which items get evicted first when memory is low
-                Priority = CacheItemPriority.Normal,
+//                 // Priority - determines which items get evicted first when memory is low
+//                 Priority = CacheItemPriority.Normal,
 
-                // Size - helps enforce memory limits (1 unit per lobby)
-                Size = 1
-            };
+//                 // Size - helps enforce memory limits (1 unit per lobby)
+//                 Size = 1
+//             };
 
-            // Log when cache entry is removed
-            options.RegisterPostEvictionCallback((key, value, reason, state) =>
-            {
-                _logger.LogDebug("Cache entry removed: {Key}, Reason: {Reason}", key, reason);
-            });
+//             // Log when cache entry is removed
+//             options.RegisterPostEvictionCallback((key, value, reason, state) =>
+//             {
+//                 _logger.LogDebug("Cache entry removed: {Key}, Reason: {Reason}", key, reason);
+//             });
 
-            _cache.Set(key, value, options);
-        }
+//             _cache.Set(key, value, options);
+//         }
 
-        return value;
-    }
+//         return value;
+//     }
 
-    /// <summary>
-    /// Remove a specific cache entry
-    /// </summary>
-    public void Remove(string key)
-    {
-        _cache.Remove(key);
-        _logger.LogDebug("Cache removed: {CacheKey}", key);
-    }
+//     /// <summary>
+//     /// Remove a specific cache entry
+//     /// </summary>
+//     public void Remove(string key)
+//     {
+//         _cache.Remove(key);
+//         _logger.LogDebug("Cache removed: {CacheKey}", key);
+//     }
 
-    /// <summary>
-    /// Check if key exists in cache
-    /// </summary>
-    public bool Exists(string key)
-    {
-        return _cache.TryGetValue(key, out _);
-    }
-}
+//     /// <summary>
+//     /// Check if key exists in cache
+//     /// </summary>
+//     public bool Exists(string key)
+//     {
+//         return _cache.TryGetValue(key, out _);
+//     }
+// }

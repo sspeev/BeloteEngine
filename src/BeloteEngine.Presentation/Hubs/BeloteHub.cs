@@ -1,48 +1,41 @@
+using System.IdentityModel.Tokens.Jwt;
 using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Application.DTOs;
 using BeloteEngine.Application.Security;
 using BeloteEngine.Domain.Entities.Models;
-using BeloteEngine.Infrastructure.Session;
 using BeloteEngine.Presentation.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeloteEngine.Presentation.Hubs;
 
 [EnableRateLimiting("fixed")]
+[Authorize]
 public class BeloteHub(
       ILogger<BeloteHub> logger
     , ILobbyService lobbyService
     , IGameService gameService
-    , IConnectionLimiter connectionLimiter
     , IAfkTimerService afkTimer
-    , ISessionService sessionCookieService
     , IHostEnvironment environment
+    , IConnectionRegistry connectionRegistry
     ) : Hub<IBeloteClient>
 {
+    private const string UserIdItemKey = "BeloteHub.UserId";
+    private const string LobbyIdItemKey = "BeloteHub.LobbyId";
+
     private readonly bool logSensitiveDetails = environment.IsDevelopment();
 
     public override async Task OnConnectedAsync()
     {
-        var httpContext = Context.GetHttpContext();
-        var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        if (!connectionLimiter.CanConnect(ipAddress))
-        {
-            if (logSensitiveDetails)
-                logger.LogWarning("Connection limit reached for IP {IpAddress}", ipAddress);
-            else
-                logger.LogWarning("Connection limit reached for incoming connection");
-            Context.Abort();
-            return;
-        }
-
-        connectionLimiter.TrackConnection(ipAddress, Context.ConnectionId);
+        var userId = GetAuthenticatedUserId();
+        connectionRegistry.Register(userId, Context.ConnectionId);
         afkTimer.Register(Context.ConnectionId, Context);
 
         if (logSensitiveDetails)
-            logger.LogInformation("Player connected: {ConnectionId} from {IpAddress}",
-                Context.ConnectionId, ipAddress);
+            logger.LogInformation("Player connected: {ConnectionId}",
+                Context.ConnectionId);
         else
             logger.LogInformation("Player connected");
 
@@ -51,26 +44,27 @@ public class BeloteHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var httpContext = Context.GetHttpContext();
-        var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        connectionLimiter.RemoveConnection(ipAddress, Context.ConnectionId);
         afkTimer.Unregister(Context.ConnectionId);
 
-        var (player, lobby) = lobbyService.RemovePlayerByConnectionId(Context.ConnectionId);
-        if (player != null)
+        var userId = GetConnectionUserId();
+        var lobbyId = GetConnectionLobbyId();
+        if (userId is not null && lobbyId is not null)
         {
-            if (lobby != null)
+            var lobby = lobbyService.GetLobby(lobbyId.Value);
+            var player = lobby?.ConnectedPlayers.FirstOrDefault(p =>
+                string.Equals(p.UserId, userId, StringComparison.OrdinalIgnoreCase));
+
+            if (player is not null && lobbyService.LeaveLobby(player, lobbyId.Value))
             {
-                await Clients.Group($"Lobby_{lobby.Id}").PlayerLeft(lobby);
+                var updatedLobby = lobbyService.GetLobby(lobbyId.Value);
+                if (updatedLobby is null)
+                    await Clients.All.LobbyDeleted(lobbyId.Value);
+                else
+                    await Clients.Group($"Lobby_{lobbyId.Value}").PlayerLeft(updatedLobby);
+
+                logger.LogInformation("Player {PlayerName} removed from lobby {LobbyId} on disconnect",
+                    player.Name, lobbyId.Value);
             }
-            else
-            {
-                // Lobby was deleted because it's empty
-                if (player.LobbyId is int deletedLobbyId)
-                    await Clients.All.LobbyDeleted(deletedLobbyId);
-            }
-            logger.LogInformation("Player {PlayerName} removed from lobby {LobbyId} on disconnect", player.Name, player.LobbyId);
         }
 
         if (logSensitiveDetails)
@@ -82,6 +76,12 @@ public class BeloteHub(
     }
 
     // ── Lobby ─────────────────────────────────────────────────────────────────
+
+    private string GetAuthenticatedUserId()
+    {
+        return Context.User?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+        ?? throw new HubException("Authentication is required.");
+    }
 
     public async Task<Lobby> JoinLobby(JoinModel request)
     {
@@ -97,36 +97,21 @@ public class BeloteHub(
             throw new HubException(ex.Message);
         }
 
-        var httpContext = Context.GetHttpContext()
-            ?? throw new HubException("Session validation failed.");
-
-        if (!sessionCookieService.TryReadSession(httpContext.Request, out var session))
-        {
-            throw new HubException("Session validation failed. Please reconnect and try again.");
-        }
-
-        if (!string.Equals(session!.PlayerName, request.PlayerName, StringComparison.OrdinalIgnoreCase))
-        {
-            if (logSensitiveDetails)
-                logger.LogWarning("Session identity mismatch for player {PlayerName}", request.PlayerName);
-            else
-                logger.LogWarning("Session validation failed");
-            throw new HubException("Session validation failed. Please refresh and try again.");
-        }
+        var userId = GetAuthenticatedUserId();
 
         Player player = new()
         {
-            UserId = "", //ATTENTION!
+            UserId = userId,
             Name = request.PlayerName,
             LobbyId = request.LobbyId,
-            ConnectionId = Context.ConnectionId,
-            SessionId = session.SessionId
         };
 
-        var joinResult = lobbyService.JoinLobby(player);
+        var joinResult = lobbyService.JoinLobby(request.LobbyId, player);
         if (!joinResult.Success)
             throw new HubException(joinResult.ErrorMessage);
 
+        Context.Items[UserIdItemKey] = player.UserId;
+        Context.Items[LobbyIdItemKey] = request.LobbyId;
         await Groups.AddToGroupAsync(Context.ConnectionId, $"Lobby_{request.LobbyId}");
         logger.LogInformation("Player {PlayerName} joined lobby {LobbyId}", request.PlayerName, request.LobbyId);
 
@@ -151,8 +136,7 @@ public class BeloteHub(
             throw new HubException("You can only leave as yourself");
         }
 
-        var player = new Player { Name = request.PlayerName, LobbyId = request.LobbyId };
-        bool success = lobbyService.LeaveLobby(player, request.LobbyId);
+        bool success = lobbyService.LeaveLobby(callingPlayer, request.LobbyId);
 
         if (!success)
             throw new HubException("Failed to leave the lobby.");
@@ -183,7 +167,6 @@ public class BeloteHub(
         GetCallerOrThrow(lobby); // just validate presence
         gameService.GameInitializer(lobby);
         gameService.InitialPhase(lobby);
-        lobby.Game.Splitter = lobby.Game.CurrentPlayer;
         lobby.UpdateActivity();
         logger.LogInformation("Game started in lobby {LobbyId}", lobbyId);
         await Clients.Group($"Lobby_{lobbyId}").GameStarted(lobby);
@@ -202,11 +185,9 @@ public class BeloteHub(
         lobby.UpdateActivity();
 
         var dealer = gameService.PlayerToDealCards(players);
-        lobby.Game.Dealer = dealer;
+        lobby.Game.CurrentPlayer = dealer;
 
         var firstBidder = gameService.PlayerToStartAnnounceAndPlay(players);
-        lobby.Game.Announcer = firstBidder;
-        lobby.Game.Starter = firstBidder;
         lobby.Game.CurrentPlayer = firstBidder;
 
         foreach (var player in players)
@@ -214,7 +195,7 @@ public class BeloteHub(
 
         await Clients.Group($"Lobby_{lobbyId}").CardsDealt(lobby, dealer.Name, firstBidder.Name);
 
-        afkTimer.Start(firstBidder.ConnectionId);
+        afkTimer.Start(Context.ConnectionId);
     }
 
     public async Task SkipRound(int lobbyId)
@@ -257,7 +238,7 @@ public class BeloteHub(
 
         await Clients.Group($"Lobby_{lobbyId}").BidMade(lobby);
 
-        afkTimer.Transfer(Context.ConnectionId, nextPlayer.ConnectionId);
+        afkTimer.Transfer(Context.ConnectionId, Context.ConnectionId);
     }
 
     // ── Gameplay ──────────────────────────────────────────────────────────────
@@ -267,16 +248,13 @@ public class BeloteHub(
         var lobby = GetLobbyOrThrow(lobbyId);
         var callingPlayer = GetCallerOrThrow(lobby);
 
-        // The player who triggers Gameplay has no mapping to the actual starting queue order.
-        // GameService.Gameplay naturally aligns the queue to game.Starter cleanly.
-
         gameService.Gameplay(lobby);
         lobby.UpdateActivity();
 
         logger.LogInformation("Gameplay started in lobby {LobbyId}", lobbyId);
         await Clients.Group($"Lobby_{lobbyId}").Gameplay(lobby);
 
-        afkTimer.Start(lobby.Game.CurrentPlayer?.ConnectionId);
+        afkTimer.Start(Context.ConnectionId);
     }
 
     public async Task PlayCard(int lobbyId, string playerName, Card card)
@@ -308,7 +286,7 @@ public class BeloteHub(
 
         // Don't start a new timer when the round/game just ended — DealingCards restarts the chain
         if (!result.RoundComplete && !result.GameOver)
-            afkTimer.Transfer(Context.ConnectionId, lobby.Game.CurrentPlayer?.ConnectionId);
+            afkTimer.Transfer(Context.ConnectionId, Context.ConnectionId);
         else
             afkTimer.Cancel(Context.ConnectionId);
     }
@@ -320,8 +298,21 @@ public class BeloteHub(
            ?? throw new HubException($"Lobby {lobbyId} not found");
 
     private Player GetCallerOrThrow(Lobby lobby)
-        => lobby.ConnectedPlayers.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
-           ?? throw new HubException("You are not in this lobby");
+    {
+        var userId = GetConnectionUserId();
+        return lobby.ConnectedPlayers.FirstOrDefault(p =>
+                   userId is not null &&
+                   string.Equals(p.UserId, userId, StringComparison.OrdinalIgnoreCase))
+               ?? throw new HubException("You are not in this lobby");
+    }
+
+    private string? GetConnectionUserId()
+        => Context.Items.TryGetValue(UserIdItemKey, out var value) ? value as string : null;
+
+    private int? GetConnectionLobbyId()
+        => Context.Items.TryGetValue(LobbyIdItemKey, out var value) && value is int lobbyId
+            ? lobbyId
+            : null;
 
     private void ValidateTurn(Player caller, string claimedName, Lobby lobby, string action)
     {

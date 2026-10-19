@@ -1,4 +1,5 @@
-using BeloteEngine.Application.Contracts;
+using BeloteEngine.Application.Contracts.Auth;
+using BeloteEngine.Application.Contracts.Lobby;
 using BeloteEngine.Presentation.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,8 @@ namespace BeloteEngine.Presentation.Controllers;
 [Produces(MediaTypeNames.Application.Json)]
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 public sealed class LobbyController(
-    ILobbyService _lobbyService
+    ILobbyService lobbyService
+    , IUserIdentityService userIdentityService
 ) : ControllerBase
 {
 
@@ -28,7 +30,8 @@ public sealed class LobbyController(
 
         try
         {
-            var lobby = _lobbyService.CreateLobby(request.LobbyName, ipAddress);
+            var creator = userIdentityService.FindByIdAsync(request.UserId);
+            var lobby = lobbyService.CreateLobby(request.LobbyName, creator);
 
             return CreatedAtAction(
                 nameof(GetLobby),
@@ -47,7 +50,7 @@ public sealed class LobbyController(
     [HttpGet("listLobbies")]
     public IActionResult GetAvailableLobbies()
     {
-        var lobbies = _lobbyService.GetAvailableLobbies();
+        var lobbies = lobbyService.GetAvailableLobbies();
         return Ok(new LobbyResponse
         {
             Lobbies = [.. lobbies]
@@ -59,7 +62,7 @@ public sealed class LobbyController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetLobby(int lobbyId)
     {
-        var lobby = _lobbyService.GetLobby(lobbyId);
+        var lobby = lobbyService.GetLobby(lobbyId);
         if (lobby == null)
             return NotFound("Lobby not found.");
 
