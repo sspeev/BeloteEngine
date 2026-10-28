@@ -1,4 +1,5 @@
 using BeloteEngine.Application.Contracts.Auth;
+using BeloteEngine.Application.User.Commands.Login;
 using MediatR;
 
 namespace BeloteEngine.Application.User.Commands.Login;
@@ -17,7 +18,7 @@ public sealed class LoginUserCommandHandler(
             cancellationToken);
 
         return result.Succeeded
-            ? LoginUserResult.Success(result.Token!)
+            ? LoginUserResult.Success(result.AccessToken!, result.RefreshToken!, result.AccessTokenExpiresAt!.Value, result.RefreshTokenExpiresAt!.Value)
             : LoginUserResult.Failure(result.Errors);
     }
 }

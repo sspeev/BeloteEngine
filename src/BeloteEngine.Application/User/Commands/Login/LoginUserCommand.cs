@@ -8,12 +8,15 @@ public sealed record LoginUserCommand(
 
 public sealed record LoginUserResult(
     bool Succeeded,
-    string? Token,
+    string? AccessToken,
+    string? RefreshToken,
+    DateTime? AccessTokenExpiresAt,
+    DateTime? RefreshTokenExpiresAt,
     IReadOnlyCollection<string> Errors)
 {
-    public static LoginUserResult Success(string token) =>
-        new(true, token, []);
+    public static LoginUserResult Success(string accessToken, string refreshToken, DateTime accessTokenExpiresAt, DateTime refreshTokenExpiresAt) =>
+        new(true, accessToken, refreshToken, accessTokenExpiresAt, refreshTokenExpiresAt, []);
 
     public static LoginUserResult Failure(IEnumerable<string> errors) =>
-        new(false, null, [.. errors]);
+        new(false, null, null, null, null, [.. errors]);
 }

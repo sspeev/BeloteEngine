@@ -9,12 +9,15 @@ public sealed record RegisterUserCommand(
 
 public sealed record RegisterUserResult(
     bool Succeeded,
-    string? Token,
+    string? AccessToken,
+    string? RefreshToken,
+    DateTime? AccessTokenExpiresAt,
+    DateTime? RefreshTokenExpiresAt,
     IReadOnlyCollection<string> Errors)
 {
-    public static RegisterUserResult Success(string token) =>
-        new(true, token, []);
+    public static RegisterUserResult Success(string accessToken, string refreshToken, DateTime accessTokenExpiresAt, DateTime refreshTokenExpiresAt) =>
+        new(true, accessToken, refreshToken, accessTokenExpiresAt, refreshTokenExpiresAt, []);
 
     public static RegisterUserResult Failure(IEnumerable<string> errors) =>
-        new(false, null, [..errors]);
+        new(false, null, null, null, null, [..errors]);
 }
