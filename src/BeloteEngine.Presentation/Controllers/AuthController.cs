@@ -3,8 +3,11 @@ using BeloteEngine.Application.User.Commands.Login;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
+using BeloteEngine.Presentation.Common;
+using BeloteEngine.Presentation.Models;
 
 namespace BeloteEngine.Presentation.Controllers;
+
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
@@ -15,28 +18,29 @@ public class AuthController(
 
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<IActionResult> Register(
-        [FromBody] RegisterRequest request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register(
+    [FromBody] RegisterRequest request,
+    CancellationToken cancellationToken)
     {
         var result = await sender.Send(
-            new RegisterUserCommand(
-                request.Username,
-                request.Email,
-                request.Password),
+            new RegisterUserCommand(request.Username, request.Email, request.Password),
             cancellationToken);
 
         if (result.Succeeded)
         {
-            return Ok(new { Token = result.Token });
+            var authResponse = new AuthResponse
+            {
+                Token = result.Token!
+            };
+            return Ok(ApiResponse<AuthResponse>.Ok(authResponse, "Registration successful"));
         }
 
-        return BadRequest(result.Errors);
+        return BadRequest(ApiResponse<AuthResponse>.Fail(result.Errors, "Registration failed"));
     }
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<IActionResult> Login(
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
     {
@@ -46,11 +50,13 @@ public class AuthController(
 
         if (!result.Succeeded)
         {
-            return Unauthorized(result.Errors);
+            return Unauthorized(ApiResponse<AuthResponse>.Fail(result.Errors, "Invalid credentials"));
         }
 
-        return Ok(new { Token = result.Token });
+        var authResponse = new AuthResponse { Token = result.Token! };
+        return Ok(ApiResponse<AuthResponse>.Ok(authResponse, "Login successful"));
     }
+
 }
 
 public record LoginRequest(string Email, string Password);

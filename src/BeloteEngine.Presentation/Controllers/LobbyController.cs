@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Net.Mime;
+using BeloteEngine.Presentation.Common;
 
 namespace BeloteEngine.Presentation.Controllers;
 
@@ -22,12 +23,12 @@ public sealed class LobbyController(
 {
 
     [HttpPost("create")]
-    public async Task<IActionResult> CreateLobby(
+    public async Task<ActionResult<ApiResponse<LobbyResponse>>> CreateLobby(
         [FromBody] CreateRequestModel request,
         CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return BadRequest(ApiResponse<LobbyResponse>.Fail(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
         try
         {
@@ -36,7 +37,7 @@ public sealed class LobbyController(
                 cancellationToken);
 
             if (user is null)
-                return NotFound("User not found.");
+                return NotFound(ApiResponse<LobbyResponse>.Fail("User not found."));
 
             var creator = new Player
             {
@@ -47,17 +48,19 @@ public sealed class LobbyController(
 
             var lobby = lobbyService.CreateLobby(request.LobbyName, creator);
 
+            var response = new LobbyResponse
+            {
+                Lobby = LobbyResponseModel.FromDomain(lobby)
+            };
+
             return CreatedAtAction(
                 nameof(GetLobby),
                 new { lobbyId = lobby.Id },
-                new LobbyResponse
-                {
-                    Lobby = LobbyResponseModel.FromDomain(lobby)
-                });
+                ApiResponse<LobbyResponse>.Ok(response, "Lobby created successfully"));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(ApiResponse<LobbyResponse>.Fail(ex.Message));
         }
     }
 
@@ -65,10 +68,11 @@ public sealed class LobbyController(
     public IActionResult GetAvailableLobbies()
     {
         var lobbies = lobbyService.GetAvailableLobbies();
-        return Ok(new LobbyResponse
+        var response = new LobbyResponse
         {
             Lobbies = [.. lobbies]
-        });
+        };
+        return Ok(ApiResponse<LobbyResponse>.Ok(response));
     }
 
     [HttpGet("{lobbyId:int}")]
@@ -78,11 +82,13 @@ public sealed class LobbyController(
     {
         var lobby = lobbyService.GetLobby(lobbyId);
         if (lobby == null)
-            return NotFound("Lobby not found.");
+            return NotFound(ApiResponse<LobbyResponse>.Fail("Lobby not found."));
 
-        return Ok(new
+        var response = new LobbyResponse
         {
             Lobby = LobbyResponseModel.FromDomain(lobby)
-        });
+        };
+
+        return Ok(ApiResponse<LobbyResponse>.Ok(response));
     }
 }
